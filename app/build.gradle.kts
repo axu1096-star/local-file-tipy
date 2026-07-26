@@ -15,12 +15,18 @@ android {
         minSdk = 29
         targetSdk = 34
         versionCode = 3
-        versionName = "0.0.2"
+        versionName = "0.0.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
     }
 
     signingConfigs {
+        create("debugFixed") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
         val keystorePath = System.getenv("RELEASE_KEYSTORE_PATH")
         if (keystorePath != null) {
             create("release") {
@@ -33,6 +39,9 @@ android {
     }
 
     buildTypes {
+        debug {
+            signingConfig = signingConfigs.getByName("debugFixed")
+        }
         release {
             isMinifyEnabled = false
             signingConfig = signingConfigs.findByName("release")

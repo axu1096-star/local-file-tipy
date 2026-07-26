@@ -47,6 +47,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
 import android.graphics.Color as AndroidColor
 import android.graphics.drawable.ColorDrawable
+import android.os.Build
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.view.WindowManager
 import androidx.core.view.WindowCompat
@@ -171,7 +172,10 @@ private fun FullscreenVideo(
 
     Dialog(
         onDismissRequest = onExit,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false
+        )
     ) {
         val dialogView = LocalView.current
         val configuration = LocalConfiguration.current
@@ -179,10 +183,15 @@ private fun FullscreenVideo(
             val window = (dialogView.parent as? DialogWindowProvider)?.window ?: return@LaunchedEffect
             window.setLayout(MATCH_PARENT, MATCH_PARENT)
             window.setBackgroundDrawable(ColorDrawable(AndroidColor.BLACK))
-            window.setFlags(
-                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
-            )
+            window.statusBarColor = AndroidColor.TRANSPARENT
+            window.navigationBarColor = AndroidColor.TRANSPARENT
+            window.addFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                window.attributes = window.attributes.apply {
+                    layoutInDisplayCutoutMode =
+                        WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+                }
+            }
             WindowCompat.setDecorFitsSystemWindows(window, false)
             val controller = WindowInsetsControllerCompat(window, dialogView)
             controller.hide(WindowInsetsCompat.Type.systemBars())
