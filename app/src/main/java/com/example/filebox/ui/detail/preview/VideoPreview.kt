@@ -77,6 +77,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
+import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -259,6 +260,10 @@ private fun FullscreenVideo(
             window.statusBarColor = AndroidColor.TRANSPARENT
             window.navigationBarColor = AndroidColor.TRANSPARENT
             window.addFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS)
+            window.setFlags(
+                WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                WindowManager.LayoutParams.FLAG_FULLSCREEN
+            )
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 window.attributes = window.attributes.apply {
                     layoutInDisplayCutoutMode =
@@ -270,6 +275,28 @@ private fun FullscreenVideo(
             controller.hide(WindowInsetsCompat.Type.systemBars())
             controller.systemBarsBehavior =
                 WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        }
+
+        DisposableEffect(dialogView) {
+            val window = (dialogView.parent as? DialogWindowProvider)?.window
+            val controller = window?.let { WindowInsetsControllerCompat(it, dialogView) }
+            fun reHide() {
+                controller?.hide(WindowInsetsCompat.Type.systemBars())
+                controller?.systemBarsBehavior =
+                    WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            }
+            ViewCompat.setOnApplyWindowInsetsListener(dialogView) { _, insets ->
+                if (insets.isVisible(WindowInsetsCompat.Type.systemBars())) reHide()
+                insets
+            }
+            val focusListener = android.view.ViewTreeObserver.OnWindowFocusChangeListener { hasFocus ->
+                if (hasFocus) reHide()
+            }
+            dialogView.viewTreeObserver.addOnWindowFocusChangeListener(focusListener)
+            onDispose {
+                ViewCompat.setOnApplyWindowInsetsListener(dialogView, null)
+                dialogView.viewTreeObserver.removeOnWindowFocusChangeListener(focusListener)
+            }
         }
 
         VideoSurface(
