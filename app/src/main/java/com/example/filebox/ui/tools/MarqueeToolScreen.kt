@@ -13,6 +13,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -79,12 +80,16 @@ private fun Context.findActivity(): Activity? {
 
 private val TextColors = listOf(
     Color.White, Color.Red, Color(0xFF00E676), Color.Yellow,
-    Color(0xFF29B6F6), Color(0xFFFF4081), Color(0xFFFFA726), Color.Black
+    Color(0xFF29B6F6), Color(0xFFFF4081), Color(0xFFFFA726), Color.Black,
+    Color(0xFF00BCD4), Color(0xFF7C4DFF), Color(0xFFEC407A), Color(0xFFCDDC39),
+    Color(0xFFFF7043), Color(0xFF9CCC65), Color(0xFFBA68C8), Color(0xFF80D8FF)
 )
 
 private val BgColors = listOf(
     Color.Black, Color(0xFF102027), Color(0xFF1A237E), Color(0xFF4A148C),
-    Color(0xFFB71C1C), Color(0xFF1B5E20), Color.White
+    Color(0xFFB71C1C), Color(0xFF1B5E20), Color.White,
+    Color(0xFF263238), Color(0xFF006064), Color(0xFF3E2723), Color(0xFF880E4F),
+    Color(0xFF827717), Color(0xFFE65100), Color(0xFF01579B), Color(0xFF311B92)
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -205,7 +210,10 @@ private fun ColorPickerRow(
     Column {
         Text(label, style = MaterialTheme.typography.titleSmall)
         Spacer(Modifier.height(6.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.horizontalScroll(rememberScrollState())
+        ) {
             colors.forEach { color ->
                 val isSelected = color == selected
                 Box(
