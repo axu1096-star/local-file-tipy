@@ -27,6 +27,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -35,12 +36,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.DialogWindowProvider
+import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
@@ -162,6 +167,12 @@ private fun FullscreenVideo(
         onDismissRequest = onExit,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
+        val dialogView = LocalView.current
+        val configuration = LocalConfiguration.current
+        LaunchedEffect(configuration.orientation) {
+            val window = (dialogView.parent as? DialogWindowProvider)?.window
+            window?.setLayout(MATCH_PARENT, MATCH_PARENT)
+        }
         Box(
             modifier = Modifier
                 .fillMaxSize()
