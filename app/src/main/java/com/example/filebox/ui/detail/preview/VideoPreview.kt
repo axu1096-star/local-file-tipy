@@ -616,23 +616,25 @@ private fun ControlsScrim(
                         tint = if (looping) MaterialTheme.colorScheme.primary else Color.White
                     )
                 }
-                Icon(
-                    if (volume <= 0f) Icons.Filled.VolumeOff else Icons.Filled.VolumeUp,
-                    contentDescription = stringResource(R.string.video_volume),
-                    tint = Color.White
-                )
-                Slider(
-                    value = volume,
-                    onValueChange = onVolumeChange,
-                    valueRange = 0f..1f,
-                    colors = SliderDefaults.colors(
-                        thumbColor = Color.White,
-                        activeTrackColor = Color.White
-                    ),
-                    modifier = Modifier
-                        .width(120.dp)
-                        .padding(horizontal = 8.dp)
-                )
+                if (fullscreen) {
+                    Icon(
+                        if (volume <= 0f) Icons.Filled.VolumeOff else Icons.Filled.VolumeUp,
+                        contentDescription = stringResource(R.string.video_volume),
+                        tint = Color.White
+                    )
+                    Slider(
+                        value = volume,
+                        onValueChange = onVolumeChange,
+                        valueRange = 0f..1f,
+                        colors = SliderDefaults.colors(
+                            thumbColor = Color.White,
+                            activeTrackColor = Color.White
+                        ),
+                        modifier = Modifier
+                            .width(120.dp)
+                            .padding(horizontal = 8.dp)
+                    )
+                }
                 Spacer(Modifier.weight(1f))
                 if (fullscreen) {
                     IconButton(onClick = onRotate) {
