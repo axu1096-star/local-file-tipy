@@ -19,13 +19,18 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.Label
+import androidx.compose.material.icons.filled.MenuOpen
 import androidx.compose.material.icons.filled.OpenInNew
+import androidx.compose.material.icons.filled.ViewSidebar
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -34,7 +39,9 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -67,6 +74,8 @@ fun TagBrowseScreen(
     viewModel: TagBrowseViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    var showCreateChild by remember { mutableStateOf(false) }
+    var listVisible by remember { mutableStateOf(true) }
 
     Scaffold(
         topBar = {
@@ -83,24 +92,47 @@ fun TagBrowseScreen(
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
                     }
+                },
+                actions = {
+                    IconButton(onClick = { listVisible = !listVisible }) {
+                        Icon(
+                            imageVector = if (listVisible) {
+                                Icons.Filled.MenuOpen
+                            } else {
+                                Icons.Filled.ViewSidebar
+                            },
+                            contentDescription = stringResource(
+                                if (listVisible) R.string.tags_browse_hide_list
+                                else R.string.tags_browse_show_list
+                            )
+                        )
+                    }
+                    IconButton(onClick = { showCreateChild = true }) {
+                        Icon(
+                            Icons.Filled.CreateNewFolder,
+                            contentDescription = stringResource(R.string.tags_add_child)
+                        )
+                    }
                 }
             )
         }
     ) { padding ->
         Row(modifier = Modifier.fillMaxSize().padding(padding)) {
-            Box(
-                modifier = Modifier
-                    .weight(0.42f)
-                    .fillMaxHeight()
-            ) {
-                BrowseList(
-                    state = state,
-                    onOpenChildTag = onOpenChildTag,
-                    onSelectFile = viewModel::selectFile,
-                    onOpenFile = onOpenFile
-                )
+            if (listVisible) {
+                Box(
+                    modifier = Modifier
+                        .weight(0.42f)
+                        .fillMaxHeight()
+                ) {
+                    BrowseList(
+                        state = state,
+                        onOpenChildTag = onOpenChildTag,
+                        onSelectFile = viewModel::selectFile,
+                        onOpenFile = onOpenFile
+                    )
+                }
+                VerticalDivider(modifier = Modifier.fillMaxHeight())
             }
-            VerticalDivider(modifier = Modifier.fillMaxHeight())
             Box(
                 modifier = Modifier
                     .weight(0.58f)
@@ -114,10 +146,49 @@ fun TagBrowseScreen(
             }
         }
     }
+
+    if (showCreateChild) {
+        CreateChildTagDialog(
+            title = state.currentTag?.let {
+                stringResource(R.string.tags_new_child_of, it.name)
+            } ?: stringResource(R.string.tags_add_child),
+            onDismiss = { showCreateChild = false },
+            onConfirm = {
+                viewModel.createChild(it)
+                showCreateChild = false
+            }
+        )
+    }
 }
 
 @Composable
-private fun BrowseList(
+private fun CreateChildTagDialog(
+    title: String,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit
+) {
+    var value by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            OutlinedTextField(
+                value = value,
+                onValueChange = { value = it },
+                singleLine = true,
+                label = { Text(stringResource(R.string.tags_name)) }
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(value) }) {
+                Text(stringResource(R.string.action_save))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+        }
+    )
+}
     state: TagBrowseUiState,
     onOpenChildTag: (Long) -> Unit,
     onSelectFile: (Long?) -> Unit,

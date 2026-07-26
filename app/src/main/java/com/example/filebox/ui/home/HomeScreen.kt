@@ -2,8 +2,10 @@ package com.example.filebox.ui.home
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -31,6 +33,8 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -44,13 +48,16 @@ import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -62,9 +69,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.filebox.R
 import com.example.filebox.data.entity.Tag
 import com.example.filebox.domain.Category
+import com.example.filebox.ui.common.BatchTagDialog
 import com.example.filebox.ui.common.formatSize
 import com.example.filebox.ui.common.icon
 import com.example.filebox.ui.common.labelRes
+import com.example.filebox.ui.library.SelectionTopBar
+import com.example.filebox.ui.library.TagDialogMode
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -80,6 +90,9 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val allTags by viewModel.allTags.collectAsStateWithLifecycle()
+    val selectionMode by viewModel.selectionMode.collectAsStateWithLifecycle()
+    val selectedIds by viewModel.selectedIds.collectAsStateWithLifecycle()
     val picker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenMultipleDocuments()
     ) { uris ->
@@ -88,6 +101,9 @@ fun HomeScreen(
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+
+    var showDelete by remember { mutableStateOf(false) }
+    var tagDialogMode by remember { mutableStateOf<TagDialogMode?>(null) }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -142,12 +158,56 @@ fun HomeScreen(
     ) {
         HomeContent(
             state = state,
+            selectionMode = selectionMode,
+            selectedIds = selectedIds,
             onOpenMenu = { scope.launch { drawerState.open() } },
             onOpenCategory = onOpenCategory,
             onOpenFile = onOpenFile,
             onOpenTags = onOpenTags,
             onOpenTag = onOpenTag,
-            onPickFiles = { picker.launch(arrayOf("*/*")) }
+            onPickFiles = { picker.launch(arrayOf("*/*")) },
+            onEnterSelection = viewModel::enterSelection,
+            onToggleSelection = viewModel::toggleSelection,
+            onExitSelection = viewModel::clearSelection,
+            onSelectAll = viewModel::selectAll,
+            onAddTag = { tagDialogMode = TagDialogMode.ADD },
+            onRemoveTag = { tagDialogMode = TagDialogMode.REMOVE },
+            onDelete = { showDelete = true }
+        )
+    }
+
+    if (showDelete) {
+        AlertDialog(
+            onDismissRequest = { showDelete = false },
+            title = { Text(stringResource(R.string.action_delete)) },
+            text = { Text(stringResource(R.string.batch_delete_confirm, selectedIds.size)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDelete = false
+                    viewModel.deleteSelected()
+                }) { Text(stringResource(R.string.action_delete)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDelete = false }) {
+                    Text(stringResource(R.string.action_cancel))
+                }
+            }
+        )
+    }
+
+    tagDialogMode?.let { mode ->
+        BatchTagDialog(
+            title = stringResource(
+                if (mode == TagDialogMode.ADD) R.string.batch_pick_tag_add
+                else R.string.batch_pick_tag_remove
+            ),
+            tags = allTags,
+            onPick = { tagId ->
+                if (mode == TagDialogMode.ADD) viewModel.addTagToSelected(tagId)
+                else viewModel.removeTagFromSelected(tagId)
+                tagDialogMode = null
+            },
+            onDismiss = { tagDialogMode = null }
         )
     }
 }
@@ -156,41 +216,63 @@ fun HomeScreen(
 @Composable
 private fun HomeContent(
     state: HomeUiState,
+    selectionMode: Boolean,
+    selectedIds: Set<Long>,
     onOpenMenu: () -> Unit,
     onOpenCategory: (Category) -> Unit,
     onOpenFile: (Long) -> Unit,
     onOpenTags: () -> Unit,
     onOpenTag: (Long) -> Unit,
-    onPickFiles: () -> Unit
+    onPickFiles: () -> Unit,
+    onEnterSelection: (Long) -> Unit,
+    onToggleSelection: (Long) -> Unit,
+    onExitSelection: () -> Unit,
+    onSelectAll: () -> Unit,
+    onAddTag: () -> Unit,
+    onRemoveTag: () -> Unit,
+    onDelete: () -> Unit
 ) {
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.home_title)) },
-                navigationIcon = {
-                    IconButton(onClick = onOpenMenu) {
-                        Icon(
-                            Icons.Filled.Menu,
-                            contentDescription = stringResource(R.string.home_menu_open)
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(onClick = onOpenTags) {
-                        Icon(Icons.Filled.Label, contentDescription = stringResource(R.string.tags_title))
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
+            if (selectionMode) {
+                SelectionTopBar(
+                    count = selectedIds.size,
+                    onExit = onExitSelection,
+                    onSelectAll = onSelectAll,
+                    onAddTag = onAddTag,
+                    onRemoveTag = onRemoveTag,
+                    onDelete = onDelete
                 )
-            )
+            } else {
+                TopAppBar(
+                    title = { Text(stringResource(R.string.home_title)) },
+                    navigationIcon = {
+                        IconButton(onClick = onOpenMenu) {
+                            Icon(
+                                Icons.Filled.Menu,
+                                contentDescription = stringResource(R.string.home_menu_open)
+                            )
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = onOpenTags) {
+                            Icon(Icons.Filled.Label, contentDescription = stringResource(R.string.tags_title))
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.background
+                    )
+                )
+            }
         },
         floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = onPickFiles,
-                icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-                text = { Text(stringResource(R.string.home_add_files)) }
-            )
+            if (!selectionMode) {
+                ExtendedFloatingActionButton(
+                    onClick = onPickFiles,
+                    icon = { Icon(Icons.Filled.Add, contentDescription = null) },
+                    text = { Text(stringResource(R.string.home_add_files)) }
+                )
+            }
         }
     ) { padding ->
         Column(
@@ -259,7 +341,13 @@ private fun HomeContent(
                             name = fwt.file.displayName,
                             sizeLabel = formatSize(fwt.file.sizeBytes),
                             category = fwt.file.category,
-                            onClick = { onOpenFile(fwt.file.id) }
+                            selectionMode = selectionMode,
+                            selected = fwt.file.id in selectedIds,
+                            onClick = {
+                                if (selectionMode) onToggleSelection(fwt.file.id)
+                                else onOpenFile(fwt.file.id)
+                            },
+                            onLongClick = { onEnterSelection(fwt.file.id) }
                         )
                     }
                 }
@@ -415,23 +503,35 @@ private fun CompactCategoryChip(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun RecentRow(
     name: String,
     sizeLabel: String,
     category: Category,
-    onClick: () -> Unit
+    selectionMode: Boolean,
+    selected: Boolean,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit
 ) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
-        color = Color.Transparent
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick),
+        color = if (selected) {
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+        } else {
+            Color.Transparent
+        }
     ) {
         Row(
             modifier = Modifier.padding(vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            if (selectionMode) {
+                Checkbox(checked = selected, onCheckedChange = { onClick() })
+                Spacer(Modifier.width(4.dp))
+            }
             Box(
                 modifier = Modifier
                     .size(28.dp)

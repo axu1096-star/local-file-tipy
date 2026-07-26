@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class TagBrowseUiState(
@@ -29,7 +30,7 @@ data class TagBrowseUiState(
 class TagBrowseViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val fileRepo: FileRepository,
-    tagRepo: TagRepository
+    private val tagRepo: TagRepository
 ) : ViewModel() {
 
     private val tagId: Long = savedStateHandle["tagId"] ?: 0L
@@ -69,6 +70,12 @@ class TagBrowseViewModel @Inject constructor(
 
     fun selectFile(id: Long?) {
         _selectedFileId.value = id
+    }
+
+    fun createChild(name: String) {
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) return
+        viewModelScope.launch { tagRepo.createOrGet(trimmed, parentId = tagId) }
     }
 
     fun resolveFile(file: ManagedFile) = fileRepo.resolveFile(file)

@@ -31,6 +31,8 @@ the user before proceeding.
 - Do not add any library that requires network permissions or that phones home
   (analytics, crash reporters, ad SDKs, remote config).
 - Media playback stays offline: Media3 ExoPlayer only, backed by local `File`.
+  In-app preview controls (video fullscreen/orientation/loop/volume, audio
+  loop) are UI-only and must not introduce streaming or network sources.
 - Coil is used only against local `File` sources.
 
 ## File sharing outside the app

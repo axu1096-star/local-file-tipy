@@ -13,6 +13,7 @@ import com.example.filebox.ui.library.LibraryScreen
 import com.example.filebox.ui.settings.SettingsScreen
 import com.example.filebox.ui.tags.TagBrowseScreen
 import com.example.filebox.ui.tags.TagsScreen
+import com.example.filebox.ui.tools.MarqueeToolScreen
 import com.example.filebox.ui.tools.ToolsScreen
 
 object Routes {
@@ -24,6 +25,7 @@ object Routes {
     const val TAGS = "tags"
     const val TAG_BROWSE = "tagBrowse/{tagId}"
     const val TOOLS = "tools"
+    const val TOOLS_MARQUEE = "tools/marquee"
     const val SETTINGS = "settings"
 
     fun library(category: Category) = "library/${category.name}"
@@ -102,7 +104,13 @@ fun FileboxNavHost() {
             )
         }
         composable(Routes.TOOLS) {
-            ToolsScreen(onBack = { nav.popBackStack() })
+            ToolsScreen(
+                onBack = { nav.popBackStack() },
+                onOpenMarquee = { nav.navigate(Routes.TOOLS_MARQUEE) }
+            )
+        }
+        composable(Routes.TOOLS_MARQUEE) {
+            MarqueeToolScreen(onBack = { nav.popBackStack() })
         }
         composable(Routes.SETTINGS) {
             SettingsScreen(onBack = { nav.popBackStack() })

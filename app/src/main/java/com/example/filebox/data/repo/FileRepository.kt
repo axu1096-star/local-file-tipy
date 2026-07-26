@@ -36,9 +36,25 @@ class FileRepository @Inject constructor(
         dao.replaceTagsFor(fileId, tagIds)
     }
 
+    suspend fun addTagToFiles(fileIds: List<Long>, tagId: Long) {
+        fileIds.forEach { fileId ->
+            dao.addTagCrossRef(com.example.filebox.data.entity.FileTagCrossRef(fileId, tagId))
+        }
+    }
+
+    suspend fun removeTagFromFiles(fileIds: List<Long>, tagId: Long) {
+        fileIds.forEach { fileId ->
+            dao.removeTagCrossRef(fileId, tagId)
+        }
+    }
+
     suspend fun delete(file: ManagedFile) {
         dao.deleteById(file.id)
         runCatching { importer.resolveFile(file.storedPath).delete() }
+    }
+
+    suspend fun deleteAll(files: List<ManagedFile>) {
+        files.forEach { delete(it) }
     }
 
     suspend fun importUri(uri: android.net.Uri): Long = importer.import(uri)

@@ -22,8 +22,17 @@ the source of truth for build output paths.
   (children promote to root), sibling names are unique per parent, cycle guard
   lives in `TagRepository.reparent`.
 - **Tag preview (TagBrowse) screen** — one-tag, two-pane (children + direct
-  files + inline preview). File-level locator map:
-  `aiTask/rules/tag-browse.md`.
+  files + inline preview), with a top-bar action to add a child tag under the
+  current tag. File-level locator map: `aiTask/rules/tag-browse.md`.
+- **Batch multi-select** on `LibraryScreen` and Home's recent list — bulk add
+  tag / remove tag / delete files. See `aiTask/rules/batch-operations.md`.
+- **In-app media preview controls** — video preview supports fullscreen
+  (landscape/portrait), loop toggle, and volume; audio preview supports a loop
+  toggle. Both use Media3 ExoPlayer over local `File` only.
+- **LED marquee tool** (`ui/tools/MarqueeToolScreen.kt`, route
+  `Routes.TOOLS_MARQUEE`) — text + text/background color + font size + speed,
+  then a fullscreen landscape scrolling marquee (forces landscape + keep-screen-on
+  while shown). No storage/network; pure UI.
 - **`allowBackup=false`** with empty backup/data-extraction rules.
 
 ## Toolchain (pinned, must match — see `aiTask/rules/dependency-lockstep.md`)
@@ -81,6 +90,10 @@ does this explicitly.
 - `FileCopier` is a pure JVM class (no Android imports) so it can be unit
   tested without Robolectric. `FileImporter` composes it with `ContentResolver`
   and the DAO — do not merge them.
+- `MainActivity` declares `configChanges="orientation|screenSize|screenLayout|keyboardHidden"`
+  so the video preview's fullscreen orientation toggle does not recreate the
+  activity / release the ExoPlayer. Do not remove it without reworking video
+  fullscreen.
 
 ## Testing
 - Only JVM unit tests exist. Do not add Robolectric or `androidTest`

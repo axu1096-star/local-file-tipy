@@ -1,18 +1,29 @@
 package com.example.filebox.ui.library
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Label
+import androidx.compose.material.icons.filled.LabelOff
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.SelectAll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -21,10 +32,14 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -34,6 +49,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.filebox.R
 import com.example.filebox.ui.LibraryFilter
+import com.example.filebox.ui.common.BatchTagDialog
 import com.example.filebox.ui.common.formatSize
 import com.example.filebox.ui.common.labelRes
 
@@ -49,6 +65,12 @@ fun LibraryScreen(
     val files by viewModel.files.collectAsStateWithLifecycle()
     val query by viewModel.query.collectAsStateWithLifecycle()
     val tagName by viewModel.tagName.collectAsStateWithLifecycle()
+    val allTags by viewModel.allTags.collectAsStateWithLifecycle()
+    val selectionMode by viewModel.selectionMode.collectAsStateWithLifecycle()
+    val selectedIds by viewModel.selectedIds.collectAsStateWithLifecycle()
+
+    var showDelete by remember { mutableStateOf(false) }
+    var tagDialogMode by remember { mutableStateOf<TagDialogMode?>(null) }
 
     val title = when (filter) {
         is LibraryFilter.OfCategory -> stringResource(filter.category.labelRes())
@@ -58,14 +80,25 @@ fun LibraryScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(title) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+            if (selectionMode) {
+                SelectionTopBar(
+                    count = selectedIds.size,
+                    onExit = viewModel::clearSelection,
+                    onSelectAll = viewModel::selectAll,
+                    onAddTag = { tagDialogMode = TagDialogMode.ADD },
+                    onRemoveTag = { tagDialogMode = TagDialogMode.REMOVE },
+                    onDelete = { showDelete = true }
+                )
+            } else {
+                TopAppBar(
+                    title = { Text(title) },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+                        }
                     }
-                }
-            )
+                )
+            }
         }
     ) { padding ->
         Column(
@@ -99,33 +132,140 @@ fun LibraryScreen(
                             sizeLabel = formatSize(fwt.file.sizeBytes),
                             tags = fwt.tags.joinToString(" · ") { it.name },
                             categoryLabel = stringResource(fwt.file.category.labelRes()),
-                            onClick = { onOpenFile(fwt.file.id) }
+                            selectionMode = selectionMode,
+                            selected = fwt.file.id in selectedIds,
+                            onClick = {
+                                if (selectionMode) {
+                                    viewModel.toggleSelection(fwt.file.id)
+                                } else {
+                                    onOpenFile(fwt.file.id)
+                                }
+                            },
+                            onLongClick = { viewModel.enterSelection(fwt.file.id) }
                         )
                     }
                 }
             }
         }
     }
+
+    if (showDelete) {
+        AlertDialog(
+            onDismissRequest = { showDelete = false },
+            title = { Text(stringResource(R.string.action_delete)) },
+            text = {
+                Text(stringResource(R.string.batch_delete_confirm, selectedIds.size))
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDelete = false
+                    viewModel.deleteSelected()
+                }) { Text(stringResource(R.string.action_delete)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDelete = false }) {
+                    Text(stringResource(R.string.action_cancel))
+                }
+            }
+        )
+    }
+
+    tagDialogMode?.let { mode ->
+        BatchTagDialog(
+            title = stringResource(
+                if (mode == TagDialogMode.ADD) R.string.batch_pick_tag_add
+                else R.string.batch_pick_tag_remove
+            ),
+            tags = allTags,
+            onPick = { tagId ->
+                if (mode == TagDialogMode.ADD) viewModel.addTagToSelected(tagId)
+                else viewModel.removeTagFromSelected(tagId)
+                tagDialogMode = null
+            },
+            onDismiss = { tagDialogMode = null }
+        )
+    }
 }
 
+internal enum class TagDialogMode { ADD, REMOVE }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun SelectionTopBar(
+    count: Int,
+    onExit: () -> Unit,
+    onSelectAll: () -> Unit,
+    onAddTag: () -> Unit,
+    onRemoveTag: () -> Unit,
+    onDelete: () -> Unit
+) {
+    TopAppBar(
+        title = { Text(stringResource(R.string.batch_selected, count)) },
+        navigationIcon = {
+            IconButton(onClick = onExit) {
+                Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.batch_exit))
+            }
+        },
+        actions = {
+            IconButton(onClick = onSelectAll) {
+                Icon(
+                    Icons.Filled.SelectAll,
+                    contentDescription = stringResource(R.string.batch_select_all)
+                )
+            }
+            IconButton(enabled = count > 0, onClick = onAddTag) {
+                Icon(
+                    Icons.Filled.Label,
+                    contentDescription = stringResource(R.string.batch_add_tag)
+                )
+            }
+            IconButton(enabled = count > 0, onClick = onRemoveTag) {
+                Icon(
+                    Icons.Filled.LabelOff,
+                    contentDescription = stringResource(R.string.batch_remove_tag)
+                )
+            }
+            IconButton(enabled = count > 0, onClick = onDelete) {
+                Icon(
+                    Icons.Filled.Delete,
+                    contentDescription = stringResource(R.string.action_delete)
+                )
+            }
+        }
+    )
+}
+
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun FileRow(
     name: String,
     sizeLabel: String,
     tags: String,
     categoryLabel: String,
-    onClick: () -> Unit
+    selectionMode: Boolean,
+    selected: Boolean,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit
 ) {
     Surface(
-        onClick = onClick,
-        color = MaterialTheme.colorScheme.surface,
+        color = if (selected) {
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+        } else {
+            MaterialTheme.colorScheme.surface
+        },
         shape = RoundedCornerShape(12.dp),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
     ) {
         Row(
             modifier = Modifier.padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            if (selectionMode) {
+                Checkbox(checked = selected, onCheckedChange = { onClick() })
+                Spacer(Modifier.width(8.dp))
+            }
             Column(Modifier.weight(1f)) {
                 Text(
                     text = name,

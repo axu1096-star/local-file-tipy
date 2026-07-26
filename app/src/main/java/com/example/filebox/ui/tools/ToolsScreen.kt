@@ -13,7 +13,9 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Construction
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Fingerprint
+import androidx.compose.material.icons.filled.Textsms
 import androidx.compose.material.icons.filled.Upload
+import androidx.compose.foundation.clickable
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -32,7 +34,7 @@ import com.example.filebox.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ToolsScreen(onBack: () -> Unit) {
+fun ToolsScreen(onBack: () -> Unit, onOpenMarquee: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
@@ -53,6 +55,12 @@ fun ToolsScreen(onBack: () -> Unit) {
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
+            EnabledTool(
+                icon = Icons.Filled.Textsms,
+                label = stringResource(R.string.tools_item_marquee),
+                onClick = onOpenMarquee
+            )
+            Spacer(Modifier.height(8.dp))
             Text(
                 text = stringResource(R.string.tools_placeholder),
                 style = MaterialTheme.typography.bodyMedium,
@@ -77,6 +85,24 @@ fun ToolsScreen(onBack: () -> Unit) {
             )
         }
     }
+}
+
+@Composable
+private fun EnabledTool(icon: ImageVector, label: String, onClick: () -> Unit) {
+    ListItem(
+        headlineContent = { Text(label) },
+        leadingContent = {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary
+            )
+        },
+        colors = ListItemDefaults.colors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        modifier = Modifier.clickable(onClick = onClick)
+    )
 }
 
 @Composable

@@ -3,6 +3,8 @@ package com.example.filebox.ui.library
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.filebox.data.entity.FileWithTags
+import com.example.filebox.data.entity.ManagedFile
+import com.example.filebox.data.entity.Tag
 import com.example.filebox.data.repo.FileRepository
 import com.example.filebox.data.repo.TagRepository
 import com.example.filebox.domain.Category
@@ -18,6 +20,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class LibraryUiState(
@@ -66,4 +69,68 @@ class LibraryViewModel @Inject constructor(
             if (q.isBlank()) base else repo.search(q.trim())
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val allTags: StateFlow<List<Tag>> = tagRepo.observeAll()
+        .map { list -> list.sortedBy { it.name.lowercase() } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    private val _selectedIds = MutableStateFlow<Set<Long>>(emptySet())
+    val selectedIds: StateFlow<Set<Long>> = _selectedIds.asStateFlow()
+
+    private val _selectionMode = MutableStateFlow(false)
+    val selectionMode: StateFlow<Boolean> = _selectionMode.asStateFlow()
+
+    fun enterSelection(id: Long) {
+        _selectionMode.value = true
+        _selectedIds.value = setOf(id)
+    }
+
+    fun toggleSelection(id: Long) {
+        _selectedIds.value = _selectedIds.value.toMutableSet().also {
+            if (!it.add(id)) it.remove(id)
+        }
+        if (_selectedIds.value.isEmpty()) _selectionMode.value = false
+    }
+
+    fun selectAll() {
+        _selectedIds.value = files.value.map { it.file.id }.toSet()
+        if (_selectedIds.value.isNotEmpty()) _selectionMode.value = true
+    }
+
+    fun clearSelection() {
+        _selectedIds.value = emptySet()
+        _selectionMode.value = false
+    }
+
+    private fun selectedFiles(): List<ManagedFile> {
+        val ids = _selectedIds.value
+        return files.value.filter { it.file.id in ids }.map { it.file }
+    }
+
+    fun addTagToSelected(tagId: Long) {
+        val ids = _selectedIds.value.toList()
+        if (ids.isEmpty()) return
+        viewModelScope.launch {
+            repo.addTagToFiles(ids, tagId)
+            clearSelection()
+        }
+    }
+
+    fun removeTagFromSelected(tagId: Long) {
+        val ids = _selectedIds.value.toList()
+        if (ids.isEmpty()) return
+        viewModelScope.launch {
+            repo.removeTagFromFiles(ids, tagId)
+            clearSelection()
+        }
+    }
+
+    fun deleteSelected() {
+        val targets = selectedFiles()
+        if (targets.isEmpty()) return
+        viewModelScope.launch {
+            repo.deleteAll(targets)
+            clearSelection()
+        }
+    }
 }

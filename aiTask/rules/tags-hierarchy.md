@@ -85,11 +85,16 @@ recursion), plus an inline preview pane on the right.
     `FileRepository.observeAllWithTags()`), sorted by `addedAt` desc. It does
     **not** include files of descendant tags — see "Filtering semantics" below.
   - `selectFile(id?)`, `resolveFile(file)` (delegates to `FileRepository`).
+  - `createChild(name)` — creates a child tag under the current `tagId` via
+    `TagRepository.createOrGet(name, parentId = tagId)`.
 - `ui/tags/TagBrowseScreen.kt` signature: `TagBrowseScreen(onBack,
   onOpenChildTag: (Long) -> Unit, onOpenFile: (Long) -> Unit, viewModel)`.
   - `onOpenChildTag` is wired to `Routes.tagBrowse(id)` — clicking a child
     tag drills into the next level. Do not repurpose it for anything else.
   - `onOpenFile` is wired to `Routes.detail(id)`.
+  - A top-bar action (`Icons.Filled.CreateNewFolder`) opens a dialog that
+    creates a child tag under the current tag via `createChild`. Title uses
+    `R.string.tags_new_child_of` (current tag name) when known.
   - Layout: **two-pane split**. Left pane is a `LazyColumn` with child-tag
     rows first, then a divider, then file rows. Right pane is the preview,
     bound to `state.selectedFile`. Clicking a file row selects it (preview);
