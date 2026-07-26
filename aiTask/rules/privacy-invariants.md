@@ -20,6 +20,19 @@ the user before proceeding.
 - The original `Uri` is stored in `ManagedFile.sourceUri` only as an audit
   reference. Do not call `takePersistableUriPermission`.
 - Never write outside `filesDir` (no cache exfiltration, no MediaStore inserts).
+  **Sole exception:** user-initiated export (see below).
+
+## Export (user-initiated save to device)
+- The **only** sanctioned write outside `filesDir`. It is always triggered by
+  the user (batch "save to device" in `LibraryScreen`/`HomeScreen`, or
+  single-file save in `FileDetailScreen`).
+- Destination is chosen by the user through SAF
+  `ActivityResultContracts.OpenDocumentTree()`. Files are written via
+  `DocumentFile.createFile(...)` + `ContentResolver.openOutputStream(...)`
+  (`domain/FileExporter.kt`).
+- **No new permissions, no network, no MediaStore inserts, no hardcoded paths.**
+  Do not export to any location the user did not explicitly pick, and do not
+  persist the tree URI permission beyond the operation.
 
 ## Backup and transfer
 - `android:allowBackup="false"`

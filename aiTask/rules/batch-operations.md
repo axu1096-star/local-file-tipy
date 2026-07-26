@@ -24,10 +24,11 @@ When `selectionMode` is true, both screens swap their normal `TopAppBar` for
 `ui/library/LibraryScreen.kt`, `internal`, reused by Home — do not fork it).
 Home also hides its FAB while selecting.
 
-Action order (must stay consistent): **close → select-all → add-tag
-(`Icons.Filled.Label`) → remove-tag (`Icons.Filled.LabelOff`) → delete
-(`Icons.Filled.Delete`)**. Title shows `R.string.batch_selected` with the
-count. Tag/delete actions are disabled when the selection is empty.
+Action order (must stay consistent): **close → select-all → save
+(`Icons.Filled.SaveAlt`) → add-tag (`Icons.Filled.Label`) → remove-tag
+(`Icons.Filled.LabelOff`) → delete (`Icons.Filled.Delete`)**. Title shows
+`R.string.batch_selected` with the count. Save/tag/delete actions are disabled
+when the selection is empty.
 
 ## Dialogs
 
@@ -48,6 +49,9 @@ count. Tag/delete actions are disabled when the selection is empty.
   - `removeTagFromFiles(fileIds, tagId)` — loops `dao.removeTagCrossRef`.
   - `deleteAll(files)` — loops the existing single-file `delete`, so each file's
     stored copy is deleted too.
+  - `exportTo(files, treeUri, onProgress)` — batch export via SAF
+    `OpenDocumentTree` to a user-chosen folder; uses `FileExporter` under the
+    hood. See `aiTask/rules/privacy-invariants.md` for the privacy exception.
   - No new DAO methods or schema changes were needed; `AppDatabase.version`
     is unchanged.
 - ViewModels (`LibraryViewModel`, `HomeViewModel`) each hold:
@@ -55,9 +59,29 @@ count. Tag/delete actions are disabled when the selection is empty.
     `allTags: StateFlow<List<Tag>>` (sorted by name).
   - Actions: `enterSelection(id)`, `toggleSelection(id)`, `selectAll()`,
     `clearSelection()`, `addTagToSelected(tagId)`, `removeTagFromSelected(tagId)`,
-    `deleteSelected()`. Each mutating action clears the selection when done.
+    `deleteSelected()`, `saveSelectedTo(treeUri)`. Each mutating action clears
+    the selection when done.
   - `selectAll()` selects the currently visible list (Library: filtered
     `files`; Home: `recent`).
+  - `export: StateFlow<ExportUiState>` (`ui/common/ExportUiState.kt`) drives the
+    real-time progress dialog (`ui/common/ExportProgressDialog.kt`);
+    `consumeExportResult()` clears the one-shot result after the Toast shows.
+    `saveSelectedTo(treeUri)` runs `FileRepository.exportTo` with a progress
+    callback that updates `export`.
+
+## Export (save to device)
+
+- Entry points: the `SaveAlt` action in `SelectionTopBar` (both screens) and the
+  `SaveAlt` action in `FileDetailScreen`'s top bar (single file →
+  `FileDetailViewModel.exportTo`).
+- Uses SAF `ActivityResultContracts.OpenDocumentTree()` — user picks a
+  destination folder; no permissions, no network. This is the **only** path
+  that writes outside `filesDir`; see `aiTask/rules/privacy-invariants.md`.
+- `domain/FileExporter.kt` copies each file's stored copy to the chosen tree via
+  `DocumentFile.createFile(mime, displayName)` + `openOutputStream`. Target names
+  use the original `displayName`; on collision it appends ` (n)` before the
+  extension (pure-JVM `FileExporter.uniqueName`, unit-tested).
+- Result is reported via `Toast` (`batch_save_done` / `batch_save_partial`).
 
 ## Strings
 
@@ -68,6 +92,9 @@ Added under the `batch_*` prefix in **both** `values/strings.xml` and
 - `batch_add_tag`, `batch_remove_tag`, `batch_select_all`, `batch_exit`
 - `batch_delete_confirm` (takes `%1$d`)
 - `batch_pick_tag_add`, `batch_pick_tag_remove`, `batch_no_tags`
+- `batch_save`, `batch_save_progress` (takes `%1$d`, `%2$d`),
+  `batch_save_done` (takes `%1$d`), `batch_save_partial` (takes `%1$d`, `%2$d`)
+- `detail_save` (single-file save in the detail screen)
 
 ## Invariants checklist
 
@@ -79,3 +106,5 @@ Added under the `batch_*` prefix in **both** `values/strings.xml` and
    `replaceTags` (which would clobber a file's other tags).
 4. Selection state stays in-memory in the VM.
 5. New string keys land in both locales in the same commit.
+6. Batch export goes through `FileRepository.exportTo` → `FileExporter`, only
+   to a user-chosen SAF tree; never write to a hardcoded/external path.

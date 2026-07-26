@@ -78,4 +78,12 @@ class FileDetailViewModel @Inject constructor(
     }
 
     fun resolveFile() = state.value.file?.let { fileRepo.resolveFile(it.file) }
+
+    fun exportTo(treeUri: android.net.Uri, onResult: (Boolean) -> Unit) {
+        val current = state.value.file ?: return
+        viewModelScope.launch {
+            val result = fileRepo.exportTo(listOf(current.file), treeUri)
+            onResult(result.success > 0)
+        }
+    }
 }

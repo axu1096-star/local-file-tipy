@@ -8,6 +8,8 @@ import com.example.filebox.data.entity.Tag
 import com.example.filebox.data.repo.FileRepository
 import com.example.filebox.data.repo.TagRepository
 import com.example.filebox.domain.Category
+import com.example.filebox.domain.FileExporter
+import com.example.filebox.ui.common.ExportUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -118,6 +120,26 @@ class HomeViewModel @Inject constructor(
             repo.deleteAll(targets)
             clearSelection()
         }
+    }
+
+    private val _export = MutableStateFlow(ExportUiState())
+    val export: StateFlow<ExportUiState> = _export.asStateFlow()
+
+    fun saveSelectedTo(treeUri: android.net.Uri) {
+        val targets = selectedFiles()
+        if (targets.isEmpty()) return
+        viewModelScope.launch {
+            _export.value = ExportUiState(active = true, progress = FileExporter.Progress(0, targets.size, ""))
+            val result = repo.exportTo(targets, treeUri) { p ->
+                _export.value = _export.value.copy(progress = p)
+            }
+            _export.value = ExportUiState(active = false, result = result)
+            clearSelection()
+        }
+    }
+
+    fun consumeExportResult() {
+        _export.value = _export.value.copy(result = null)
     }
 
     fun importUris(uris: List<android.net.Uri>) {

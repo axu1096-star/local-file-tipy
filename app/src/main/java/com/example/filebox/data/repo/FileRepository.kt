@@ -4,6 +4,7 @@ import com.example.filebox.data.db.ManagedFileDao
 import com.example.filebox.data.entity.FileWithTags
 import com.example.filebox.data.entity.ManagedFile
 import com.example.filebox.domain.Category
+import com.example.filebox.domain.FileExporter
 import com.example.filebox.domain.FileImporter
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -13,7 +14,8 @@ import javax.inject.Singleton
 @Singleton
 class FileRepository @Inject constructor(
     private val dao: ManagedFileDao,
-    private val importer: FileImporter
+    private val importer: FileImporter,
+    private val exporter: FileExporter
 ) {
     fun observeRecent(limit: Int = 20): Flow<List<FileWithTags>> = dao.observeRecent(limit)
     fun observeAllWithTags(): Flow<List<FileWithTags>> = dao.observeAllWithTags()
@@ -58,6 +60,12 @@ class FileRepository @Inject constructor(
     }
 
     suspend fun importUri(uri: android.net.Uri): Long = importer.import(uri)
+
+    suspend fun exportTo(
+        files: List<ManagedFile>,
+        treeUri: android.net.Uri,
+        onProgress: (FileExporter.Progress) -> Unit = {}
+    ): FileExporter.Result = exporter.exportTo(files, treeUri, onProgress)
 
     fun resolveFile(file: ManagedFile) = importer.resolveFile(file.storedPath)
 }

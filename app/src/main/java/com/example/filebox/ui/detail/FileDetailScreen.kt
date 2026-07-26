@@ -1,5 +1,8 @@
 package com.example.filebox.ui.detail
 
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,6 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.OpenInNew
+import androidx.compose.material.icons.filled.SaveAlt
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
@@ -71,6 +75,21 @@ fun FileDetailScreen(
     val context = LocalContext.current
     val file = state.file
 
+    val folderPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocumentTree()
+    ) { treeUri ->
+        treeUri?.let { uri ->
+            viewModel.exportTo(uri) { ok ->
+                val msg = if (ok) {
+                    context.getString(R.string.batch_save_done, 1)
+                } else {
+                    context.getString(R.string.batch_save_partial, 0, 1)
+                }
+                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     var noteDraft by remember(file?.file?.id) { mutableStateOf(file?.file?.note.orEmpty()) }
     LaunchedEffect(file?.file?.note) { noteDraft = file?.file?.note.orEmpty() }
 
@@ -88,6 +107,11 @@ fun FileDetailScreen(
                     }
                 },
                 actions = {
+                    IconButton(enabled = file != null, onClick = {
+                        folderPicker.launch(null)
+                    }) {
+                        Icon(Icons.Filled.SaveAlt, contentDescription = stringResource(R.string.detail_save))
+                    }
                     IconButton(enabled = file != null, onClick = {
                         val f = viewModel.resolveFile() ?: return@IconButton
                         ExternalOpen.share(context, f, file!!.file.mimeType)

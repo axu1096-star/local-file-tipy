@@ -1,5 +1,8 @@
 package com.example.filebox.ui.library
 
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -20,6 +23,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Label
 import androidx.compose.material.icons.filled.LabelOff
+import androidx.compose.material.icons.filled.SaveAlt
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SelectAll
 import androidx.compose.material3.AlertDialog
@@ -42,6 +46,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -50,6 +55,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.filebox.R
 import com.example.filebox.ui.LibraryFilter
 import com.example.filebox.ui.common.BatchTagDialog
+import com.example.filebox.ui.common.ExportProgressDialog
 import com.example.filebox.ui.common.formatSize
 import com.example.filebox.ui.common.labelRes
 
@@ -68,9 +74,26 @@ fun LibraryScreen(
     val allTags by viewModel.allTags.collectAsStateWithLifecycle()
     val selectionMode by viewModel.selectionMode.collectAsStateWithLifecycle()
     val selectedIds by viewModel.selectedIds.collectAsStateWithLifecycle()
+    val export by viewModel.export.collectAsStateWithLifecycle()
+
+    val context = LocalContext.current
+    val folderPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocumentTree()
+    ) { treeUri -> treeUri?.let { viewModel.saveSelectedTo(it) } }
 
     var showDelete by remember { mutableStateOf(false) }
     var tagDialogMode by remember { mutableStateOf<TagDialogMode?>(null) }
+
+    LaunchedEffect(export.result) {
+        val result = export.result ?: return@LaunchedEffect
+        val msg = if (result.failed == 0) {
+            context.getString(R.string.batch_save_done, result.success)
+        } else {
+            context.getString(R.string.batch_save_partial, result.success, result.failed)
+        }
+        Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+        viewModel.consumeExportResult()
+    }
 
     val title = when (filter) {
         is LibraryFilter.OfCategory -> stringResource(filter.category.labelRes())
@@ -85,6 +108,7 @@ fun LibraryScreen(
                     count = selectedIds.size,
                     onExit = viewModel::clearSelection,
                     onSelectAll = viewModel::selectAll,
+                    onSave = { folderPicker.launch(null) },
                     onAddTag = { tagDialogMode = TagDialogMode.ADD },
                     onRemoveTag = { tagDialogMode = TagDialogMode.REMOVE },
                     onDelete = { showDelete = true }
@@ -185,6 +209,8 @@ fun LibraryScreen(
             onDismiss = { tagDialogMode = null }
         )
     }
+
+    ExportProgressDialog(export)
 }
 
 internal enum class TagDialogMode { ADD, REMOVE }
@@ -195,6 +221,7 @@ internal fun SelectionTopBar(
     count: Int,
     onExit: () -> Unit,
     onSelectAll: () -> Unit,
+    onSave: () -> Unit,
     onAddTag: () -> Unit,
     onRemoveTag: () -> Unit,
     onDelete: () -> Unit
@@ -211,6 +238,12 @@ internal fun SelectionTopBar(
                 Icon(
                     Icons.Filled.SelectAll,
                     contentDescription = stringResource(R.string.batch_select_all)
+                )
+            }
+            IconButton(enabled = count > 0, onClick = onSave) {
+                Icon(
+                    Icons.Filled.SaveAlt,
+                    contentDescription = stringResource(R.string.batch_save)
                 )
             }
             IconButton(enabled = count > 0, onClick = onAddTag) {

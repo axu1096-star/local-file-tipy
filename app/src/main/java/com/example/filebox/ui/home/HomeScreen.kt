@@ -1,5 +1,6 @@
 package com.example.filebox.ui.home
 
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -53,6 +54,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -61,6 +63,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -70,6 +73,7 @@ import com.example.filebox.R
 import com.example.filebox.data.entity.Tag
 import com.example.filebox.domain.Category
 import com.example.filebox.ui.common.BatchTagDialog
+import com.example.filebox.ui.common.ExportProgressDialog
 import com.example.filebox.ui.common.formatSize
 import com.example.filebox.ui.common.icon
 import com.example.filebox.ui.common.labelRes
@@ -93,17 +97,33 @@ fun HomeScreen(
     val allTags by viewModel.allTags.collectAsStateWithLifecycle()
     val selectionMode by viewModel.selectionMode.collectAsStateWithLifecycle()
     val selectedIds by viewModel.selectedIds.collectAsStateWithLifecycle()
+    val export by viewModel.export.collectAsStateWithLifecycle()
+    val context = LocalContext.current
     val picker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenMultipleDocuments()
     ) { uris ->
         if (uris.isNotEmpty()) viewModel.importUris(uris)
     }
+    val folderPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocumentTree()
+    ) { treeUri -> treeUri?.let { viewModel.saveSelectedTo(it) } }
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
     var showDelete by remember { mutableStateOf(false) }
     var tagDialogMode by remember { mutableStateOf<TagDialogMode?>(null) }
+
+    LaunchedEffect(export.result) {
+        val result = export.result ?: return@LaunchedEffect
+        val msg = if (result.failed == 0) {
+            context.getString(R.string.batch_save_done, result.success)
+        } else {
+            context.getString(R.string.batch_save_partial, result.success, result.failed)
+        }
+        Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+        viewModel.consumeExportResult()
+    }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -170,6 +190,7 @@ fun HomeScreen(
             onToggleSelection = viewModel::toggleSelection,
             onExitSelection = viewModel::clearSelection,
             onSelectAll = viewModel::selectAll,
+            onSave = { folderPicker.launch(null) },
             onAddTag = { tagDialogMode = TagDialogMode.ADD },
             onRemoveTag = { tagDialogMode = TagDialogMode.REMOVE },
             onDelete = { showDelete = true }
@@ -210,6 +231,8 @@ fun HomeScreen(
             onDismiss = { tagDialogMode = null }
         )
     }
+
+    ExportProgressDialog(export)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -228,6 +251,7 @@ private fun HomeContent(
     onToggleSelection: (Long) -> Unit,
     onExitSelection: () -> Unit,
     onSelectAll: () -> Unit,
+    onSave: () -> Unit,
     onAddTag: () -> Unit,
     onRemoveTag: () -> Unit,
     onDelete: () -> Unit
@@ -239,6 +263,7 @@ private fun HomeContent(
                     count = selectedIds.size,
                     onExit = onExitSelection,
                     onSelectAll = onSelectAll,
+                    onSave = onSave,
                     onAddTag = onAddTag,
                     onRemoveTag = onRemoveTag,
                     onDelete = onDelete
