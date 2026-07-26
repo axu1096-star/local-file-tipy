@@ -45,7 +45,13 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
+import android.graphics.Color as AndroidColor
+import android.graphics.drawable.ColorDrawable
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
+import android.view.WindowManager
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
@@ -170,8 +176,18 @@ private fun FullscreenVideo(
         val dialogView = LocalView.current
         val configuration = LocalConfiguration.current
         LaunchedEffect(configuration.orientation) {
-            val window = (dialogView.parent as? DialogWindowProvider)?.window
-            window?.setLayout(MATCH_PARENT, MATCH_PARENT)
+            val window = (dialogView.parent as? DialogWindowProvider)?.window ?: return@LaunchedEffect
+            window.setLayout(MATCH_PARENT, MATCH_PARENT)
+            window.setBackgroundDrawable(ColorDrawable(AndroidColor.BLACK))
+            window.setFlags(
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+            )
+            WindowCompat.setDecorFitsSystemWindows(window, false)
+            val controller = WindowInsetsControllerCompat(window, dialogView)
+            controller.hide(WindowInsetsCompat.Type.systemBars())
+            controller.systemBarsBehavior =
+                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
         Box(
             modifier = Modifier
