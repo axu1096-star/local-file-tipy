@@ -76,7 +76,10 @@ fun FileboxNavHost() {
             FileDetailScreen(fileId = id, onBack = { nav.popBackStack() })
         }
         composable(Routes.TAGS) {
-            TagsScreen(onBack = { nav.popBackStack() })
+            TagsScreen(
+                onBack = { nav.popBackStack() },
+                onOpenTag = { nav.navigate(Routes.libraryByTag(it)) }
+            )
         }
     }
 }

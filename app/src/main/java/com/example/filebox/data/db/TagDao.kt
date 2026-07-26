@@ -26,6 +26,9 @@ interface TagDao {
     @Query("SELECT * FROM tags WHERE id = :id")
     suspend fun findById(id: Long): Tag?
 
-    @Query("SELECT * FROM tags WHERE name = :name LIMIT 1")
-    suspend fun findByName(name: String): Tag?
+    @Query("SELECT * FROM tags WHERE name = :name AND parent_id IS :parentId LIMIT 1")
+    suspend fun findByNameInParent(name: String, parentId: Long?): Tag?
+
+    @Query("UPDATE tags SET parent_id = :parentId WHERE id = :id")
+    suspend fun updateParent(id: Long, parentId: Long?)
 }

@@ -18,6 +18,17 @@
     <string name="tags_new">New tag</string>
     <string name="tags_name">Tag name</string>
     <string name="tags_empty">No tags yet.</string>
+    <string name="tags_rename">Rename tag</string>
+    <string name="tags_add_child">New child tag</string>
+    <string name="tags_new_child_of">New tag under \"%1$s\"</string>
+    <string name="tags_move">Move</string>
+    <string name="tags_move_title">Move \"%1$s\"</string>
+    <string name="tags_no_parent">No parent (root)</string>
+    <string name="tags_delete_confirm">Delete tag \"%1$s\"? Its children will become root tags.</string>
+    <string name="tags_view_tree">Tree view</string>
+    <string name="tags_view_list">List view</string>
+    <string name="tags_expand_all">Expand all</string>
+    <string name="tags_collapse_all">Collapse all</string>
     <string name="action_save">Save</string>
     <string name="action_cancel">Cancel</string>
     <string name="action_delete">Delete</string>

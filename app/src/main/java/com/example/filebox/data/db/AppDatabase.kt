@@ -9,7 +9,7 @@ import com.example.filebox.data.entity.Tag
 
 @Database(
     entities = [ManagedFile::class, Tag::class, FileTagCrossRef::class],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

@@ -48,10 +48,11 @@ fun LibraryScreen(
     LaunchedEffect(filter) { viewModel.bind(filter) }
     val files by viewModel.files.collectAsStateWithLifecycle()
     val query by viewModel.query.collectAsStateWithLifecycle()
+    val tagName by viewModel.tagName.collectAsStateWithLifecycle()
 
     val title = when (filter) {
         is LibraryFilter.OfCategory -> stringResource(filter.category.labelRes())
-        is LibraryFilter.OfTag -> "#${filter.tagId}"
+        is LibraryFilter.OfTag -> tagName?.let { "#$it" } ?: "#"
         LibraryFilter.Untagged -> stringResource(R.string.library_no_tag)
     }
 

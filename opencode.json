@@ -3,6 +3,7 @@
   "instructions": [
     "aiTask/rules/privacy-invariants.md",
     "aiTask/rules/dependency-lockstep.md",
-    "aiTask/rules/category-mapping.md"
+    "aiTask/rules/category-mapping.md",
+    "aiTask/rules/tags-hierarchy.md"
   ]
 }

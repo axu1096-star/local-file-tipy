@@ -18,6 +18,17 @@
     <string name="tags_new">新建标签</string>
     <string name="tags_name">标签名称</string>
     <string name="tags_empty">还没有标签。</string>
+    <string name="tags_rename">重命名标签</string>
+    <string name="tags_add_child">新建子标签</string>
+    <string name="tags_new_child_of">在“%1$s”下新建</string>
+    <string name="tags_move">移动</string>
+    <string name="tags_move_title">移动“%1$s”</string>
+    <string name="tags_no_parent">无上级（顶层）</string>
+    <string name="tags_delete_confirm">删除标签“%1$s”？其子标签将提升为顶层。</string>
+    <string name="tags_view_tree">树形视图</string>
+    <string name="tags_view_list">列表视图</string>
+    <string name="tags_expand_all">全部展开</string>
+    <string name="tags_collapse_all">全部折叠</string>
     <string name="action_save">保存</string>
     <string name="action_cancel">取消</string>
     <string name="action_delete">删除</string>

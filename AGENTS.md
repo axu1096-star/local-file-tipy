@@ -17,6 +17,10 @@ the source of truth for build output paths.
 - **No external storage permission.** Files enter only via SAF and are copied
   into `filesDir/managed/<yyyyMM>/<uuid>[.ext]`.
 - **6 fixed categories + free tags.** See `aiTask/rules/category-mapping.md`.
+- **Hierarchical tags (parent-child) + tree/list view mode.** See
+  `aiTask/rules/tags-hierarchy.md`. `Tag.parentId` self-FK is `SET_NULL`
+  (children promote to root), sibling names are unique per parent, cycle guard
+  lives in `TagRepository.reparent`.
 - **`allowBackup=false`** with empty backup/data-extraction rules.
 
 ## Toolchain (pinned, must match — see `aiTask/rules/dependency-lockstep.md`)
