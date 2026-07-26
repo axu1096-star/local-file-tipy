@@ -185,14 +185,16 @@ private fun FullscreenVideo(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = {
-                    activity?.requestedOrientation =
-                        if (activity.requestedOrientation ==
-                            ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-                        ) {
-                            ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-                        } else {
-                            ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-                        }
+                    activity?.let { act ->
+                        act.requestedOrientation =
+                            if (act.requestedOrientation ==
+                                ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                            ) {
+                                ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                            } else {
+                                ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                            }
+                    }
                 }) {
                     Icon(
                         Icons.Filled.ScreenRotation,

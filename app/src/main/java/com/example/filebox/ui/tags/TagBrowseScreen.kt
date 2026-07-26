@@ -189,6 +189,9 @@ private fun CreateChildTagDialog(
         }
     )
 }
+
+@Composable
+private fun BrowseList(
     state: TagBrowseUiState,
     onOpenChildTag: (Long) -> Unit,
     onSelectFile: (Long?) -> Unit,
