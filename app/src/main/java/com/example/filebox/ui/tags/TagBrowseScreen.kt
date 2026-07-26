@@ -1,8 +1,11 @@
 package com.example.filebox.ui.tags
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -23,7 +26,10 @@ import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.Label
 import androidx.compose.material.icons.filled.MenuOpen
 import androidx.compose.material.icons.filled.OpenInNew
+import androidx.compose.material.icons.filled.SettingsBackupRestore
 import androidx.compose.material.icons.filled.ViewSidebar
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -39,12 +45,16 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -65,6 +75,10 @@ import com.example.filebox.ui.detail.preview.TextPreview
 import com.example.filebox.ui.detail.preview.VideoPreview
 import java.io.File
 
+private const val DEFAULT_SPLIT = 0.42f
+private const val MIN_SPLIT = 0.20f
+private const val MAX_SPLIT = 0.80f
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TagBrowseScreen(
@@ -75,7 +89,9 @@ fun TagBrowseScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var showCreateChild by remember { mutableStateOf(false) }
-    var listVisible by remember { mutableStateOf(true) }
+    var listVisible by rememberSaveable { mutableStateOf(true) }
+    var previewVisible by rememberSaveable { mutableStateOf(true) }
+    var splitFraction by rememberSaveable { mutableFloatStateOf(DEFAULT_SPLIT) }
 
     Scaffold(
         topBar = {
@@ -94,7 +110,16 @@ fun TagBrowseScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { listVisible = !listVisible }) {
+                    IconButton(
+                        onClick = {
+                            if (listVisible) {
+                                if (previewVisible) listVisible = false
+                            } else {
+                                listVisible = true
+                            }
+                        },
+                        enabled = !(listVisible && !previewVisible)
+                    ) {
                         Icon(
                             imageVector = if (listVisible) {
                                 Icons.Filled.MenuOpen
@@ -107,6 +132,36 @@ fun TagBrowseScreen(
                             )
                         )
                     }
+                    IconButton(
+                        onClick = {
+                            if (previewVisible) {
+                                if (listVisible) previewVisible = false
+                            } else {
+                                previewVisible = true
+                            }
+                        },
+                        enabled = !(previewVisible && !listVisible)
+                    ) {
+                        Icon(
+                            imageVector = if (previewVisible) {
+                                Icons.Filled.Visibility
+                            } else {
+                                Icons.Filled.VisibilityOff
+                            },
+                            contentDescription = stringResource(
+                                if (previewVisible) R.string.tags_browse_hide_preview
+                                else R.string.tags_browse_show_preview
+                            )
+                        )
+                    }
+                    if (listVisible && previewVisible && splitFraction != DEFAULT_SPLIT) {
+                        IconButton(onClick = { splitFraction = DEFAULT_SPLIT }) {
+                            Icon(
+                                Icons.Filled.SettingsBackupRestore,
+                                contentDescription = stringResource(R.string.tags_browse_reset_split)
+                            )
+                        }
+                    }
                     IconButton(onClick = { showCreateChild = true }) {
                         Icon(
                             Icons.Filled.CreateNewFolder,
@@ -117,32 +172,71 @@ fun TagBrowseScreen(
             )
         }
     ) { padding ->
-        Row(modifier = Modifier.fillMaxSize().padding(padding)) {
-            if (listVisible) {
-                Box(
-                    modifier = Modifier
-                        .weight(0.42f)
-                        .fillMaxHeight()
-                ) {
-                    BrowseList(
-                        state = state,
-                        onOpenChildTag = onOpenChildTag,
-                        onSelectFile = viewModel::selectFile,
-                        onOpenFile = onOpenFile
-                    )
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
+            val totalWidth = maxWidth
+            val density = LocalDensity.current
+            when {
+                listVisible && previewVisible -> {
+                    val leftWidth = totalWidth * splitFraction
+                    Row(modifier = Modifier.fillMaxSize()) {
+                        Box(
+                            modifier = Modifier
+                                .width(leftWidth)
+                                .fillMaxHeight()
+                        ) {
+                            BrowseList(
+                                state = state,
+                                onOpenChildTag = onOpenChildTag,
+                                onSelectFile = viewModel::selectFile,
+                                onOpenFile = onOpenFile
+                            )
+                        }
+                        SplitHandle(
+                            onDragDelta = { deltaPx ->
+                                val totalPx = with(density) { totalWidth.toPx() }
+                                if (totalPx > 0f) {
+                                    splitFraction = (splitFraction + deltaPx / totalPx)
+                                        .coerceIn(MIN_SPLIT, MAX_SPLIT)
+                                }
+                            },
+                            onDoubleTap = { splitFraction = 0.5f }
+                        )
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                        ) {
+                            PreviewPane(
+                                file = state.selectedFile,
+                                onOpenFile = onOpenFile,
+                                resolveFile = viewModel::resolveFile
+                            )
+                        }
+                    }
                 }
-                VerticalDivider(modifier = Modifier.fillMaxHeight())
-            }
-            Box(
-                modifier = Modifier
-                    .weight(0.58f)
-                    .fillMaxHeight()
-            ) {
-                PreviewPane(
-                    file = state.selectedFile,
-                    onOpenFile = onOpenFile,
-                    resolveFile = viewModel::resolveFile
-                )
+                listVisible -> {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        BrowseList(
+                            state = state,
+                            onOpenChildTag = onOpenChildTag,
+                            onSelectFile = viewModel::selectFile,
+                            onOpenFile = onOpenFile
+                        )
+                    }
+                }
+                else -> {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        PreviewPane(
+                            file = state.selectedFile,
+                            onOpenFile = onOpenFile,
+                            resolveFile = viewModel::resolveFile
+                        )
+                    }
+                }
             }
         }
     }
@@ -158,6 +252,30 @@ fun TagBrowseScreen(
                 showCreateChild = false
             }
         )
+    }
+}
+
+@Composable
+private fun SplitHandle(
+    onDragDelta: (Float) -> Unit,
+    onDoubleTap: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .width(12.dp)
+            .fillMaxHeight()
+            .pointerInput(Unit) {
+                detectHorizontalDragGestures { change, dragAmount ->
+                    change.consume()
+                    onDragDelta(dragAmount)
+                }
+            }
+            .pointerInput(Unit) {
+                detectTapGestures(onDoubleTap = { onDoubleTap() })
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        VerticalDivider(modifier = Modifier.fillMaxHeight())
     }
 }
 

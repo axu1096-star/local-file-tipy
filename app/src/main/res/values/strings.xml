@@ -38,6 +38,10 @@
     <string name="tags_browse_empty">该标签下暂无子标签与文件。</string>
     <string name="tags_browse_hide_list">隐藏列表</string>
     <string name="tags_browse_show_list">显示列表</string>
+    <string name="tags_browse_hide_preview">隐藏预览</string>
+    <string name="tags_browse_show_preview">显示预览</string>
+    <string name="tags_browse_reset_split">重置分栏</string>
+    <string name="tags_browse_drag_handle">拖动调整分栏</string>
     <string name="action_save">保存</string>
     <string name="action_cancel">取消</string>
     <string name="action_delete">删除</string>

@@ -216,7 +216,28 @@ private fun FullscreenVideo(
 
     DisposableEffect(Unit) {
         val original = activity?.requestedOrientation
+        val current = player.videoSize
+        val initial = when {
+            current.width > 0 && current.height > 0 && current.width >= current.height ->
+                ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+            current.width > 0 && current.height > 0 ->
+                ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+            else -> null
+        }
+        if (initial != null) activity?.requestedOrientation = initial
+        val listener = object : Player.Listener {
+            override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) {
+                if (videoSize.width <= 0 || videoSize.height <= 0) return
+                activity?.requestedOrientation = if (videoSize.width >= videoSize.height) {
+                    ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                } else {
+                    ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                }
+            }
+        }
+        player.addListener(listener)
         onDispose {
+            player.removeListener(listener)
             activity?.requestedOrientation =
                 original ?: ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
         }
