@@ -158,11 +158,10 @@ class TagsViewModel @Inject constructor(
         val byParent: Map<Long?, List<Tag>> = all
             .groupBy { it.parentId }
             .mapValues { entry -> entry.value.sortedBy { it.name.lowercase() } }
-        val filesByTag: Map<Long, List<ManagedFile>> = buildMap {
+        val filesByTag: Map<Long, List<ManagedFile>> = buildMap<Long, MutableList<ManagedFile>> {
             files.forEach { fwt ->
                 fwt.tags.forEach { t ->
-                    getOrPut(t.id) { mutableListOf() }
-                        .let { (it as MutableList).add(fwt.file) }
+                    getOrPut(t.id) { mutableListOf() }.add(fwt.file)
                 }
             }
         }.mapValues { (_, list) -> list.sortedByDescending { it.addedAt } }
