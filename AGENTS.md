@@ -21,6 +21,9 @@ the source of truth for build output paths.
   `aiTask/rules/tags-hierarchy.md`. `Tag.parentId` self-FK is `SET_NULL`
   (children promote to root), sibling names are unique per parent, cycle guard
   lives in `TagRepository.reparent`.
+- **Tag preview (TagBrowse) screen** — one-tag, two-pane (children + direct
+  files + inline preview). File-level locator map:
+  `aiTask/rules/tag-browse.md`.
 - **`allowBackup=false`** with empty backup/data-extraction rules.
 
 ## Toolchain (pinned, must match — see `aiTask/rules/dependency-lockstep.md`)

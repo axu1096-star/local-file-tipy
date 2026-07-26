@@ -4,6 +4,7 @@
     "aiTask/rules/privacy-invariants.md",
     "aiTask/rules/dependency-lockstep.md",
     "aiTask/rules/category-mapping.md",
-    "aiTask/rules/tags-hierarchy.md"
+    "aiTask/rules/tags-hierarchy.md",
+    "aiTask/rules/tag-browse.md"
   ]
 }

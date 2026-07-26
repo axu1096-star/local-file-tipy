@@ -33,6 +33,9 @@
     <string name="tags_expand_all">Expand all</string>
     <string name="tags_collapse_all">Collapse all</string>
     <string name="tags_preview_hint">Select a file to preview</string>
+    <string name="tags_open_browse">Open browse</string>
+    <string name="tags_browse_title">Tag browse</string>
+    <string name="tags_browse_empty">No child tags or files under this tag.</string>
     <string name="action_save">Save</string>
     <string name="action_cancel">Cancel</string>
     <string name="action_delete">Delete</string>

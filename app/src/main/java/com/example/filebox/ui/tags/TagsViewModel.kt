@@ -3,7 +3,6 @@ package com.example.filebox.ui.tags
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.filebox.data.entity.FileWithTags
-import com.example.filebox.data.entity.ManagedFile
 import com.example.filebox.data.entity.Tag
 import com.example.filebox.data.repo.FileRepository
 import com.example.filebox.data.repo.TagRepository
@@ -19,41 +18,30 @@ import javax.inject.Inject
 
 enum class TagsViewMode { TREE, LIST }
 
-sealed interface TagsRow {
-    val depth: Int
-
-    data class TagRow(
-        val tag: Tag,
-        override val depth: Int,
-        val hasChildren: Boolean,
-        val fileCount: Int,
-        val expanded: Boolean
-    ) : TagsRow
-
-    data class FileRow(
-        val file: ManagedFile,
-        override val depth: Int
-    ) : TagsRow
-}
+data class TagRow(
+    val tag: Tag,
+    val depth: Int,
+    val hasChildren: Boolean,
+    val fileCount: Int,
+    val expanded: Boolean
+)
 
 data class TagsUiState(
     val viewMode: TagsViewMode = TagsViewMode.TREE,
-    val rows: List<TagsRow> = emptyList(),
-    val allTags: List<Tag> = emptyList(),
-    val selectedFile: ManagedFile? = null
+    val rows: List<TagRow> = emptyList(),
+    val allTags: List<Tag> = emptyList()
 )
 
 @HiltViewModel
 class TagsViewModel @Inject constructor(
     private val repo: TagRepository,
-    private val fileRepo: FileRepository
+    fileRepo: FileRepository
 ) : ViewModel() {
 
     private val _viewMode = MutableStateFlow(TagsViewMode.TREE)
     val viewMode: StateFlow<TagsViewMode> = _viewMode.asStateFlow()
 
     private val _expanded = MutableStateFlow<Set<Long>>(emptySet())
-    private val _selectedFileId = MutableStateFlow<Long?>(null)
 
     private val tags: StateFlow<List<Tag>> = repo.observeAll()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -66,21 +54,17 @@ class TagsViewModel @Inject constructor(
             tags,
             filesWithTags,
             _viewMode,
-            _expanded,
-            _selectedFileId
-        ) { all, files, mode, expanded, selectedId ->
+            _expanded
+        ) { all, files, mode, expanded ->
+            val counts = countDirectFilesPerTag(files)
             val rows = when (mode) {
-                TagsViewMode.LIST -> buildFlatRows(all)
-                TagsViewMode.TREE -> buildTreeRows(all, files, expanded)
-            }
-            val selectedFile = selectedId?.let { id ->
-                files.firstOrNull { it.file.id == id }?.file
+                TagsViewMode.LIST -> buildFlatRows(all, counts)
+                TagsViewMode.TREE -> buildTreeRows(all, counts, expanded)
             }
             TagsUiState(
                 viewMode = mode,
                 rows = rows,
-                allTags = all,
-                selectedFile = selectedFile
+                allTags = all
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TagsUiState())
 
@@ -101,12 +85,6 @@ class TagsViewModel @Inject constructor(
     fun collapseAll() {
         _expanded.value = emptySet()
     }
-
-    fun selectFile(id: Long?) {
-        _selectedFileId.value = id
-    }
-
-    fun resolveFile(file: ManagedFile) = fileRepo.resolveFile(file)
 
     fun create(name: String, parentId: Long? = null) {
         val trimmed = name.trim()
@@ -138,54 +116,53 @@ class TagsViewModel @Inject constructor(
         viewModelScope.launch { repo.delete(id) }
     }
 
-    private fun buildFlatRows(all: List<Tag>): List<TagsRow> =
+    private fun countDirectFilesPerTag(files: List<FileWithTags>): Map<Long, Int> {
+        val out = HashMap<Long, Int>()
+        files.forEach { fwt ->
+            fwt.tags.forEach { t ->
+                out[t.id] = (out[t.id] ?: 0) + 1
+            }
+        }
+        return out
+    }
+
+    private fun buildFlatRows(all: List<Tag>, counts: Map<Long, Int>): List<TagRow> =
         all.sortedBy { it.name.lowercase() }
             .map {
-                TagsRow.TagRow(
+                TagRow(
                     tag = it,
                     depth = 0,
                     hasChildren = false,
-                    fileCount = 0,
+                    fileCount = counts[it.id] ?: 0,
                     expanded = false
                 )
             }
 
     private fun buildTreeRows(
         all: List<Tag>,
-        files: List<FileWithTags>,
+        counts: Map<Long, Int>,
         expanded: Set<Long>
-    ): List<TagsRow> {
+    ): List<TagRow> {
         val byParent: Map<Long?, List<Tag>> = all
             .groupBy { it.parentId }
             .mapValues { entry -> entry.value.sortedBy { it.name.lowercase() } }
-        val filesByTag: Map<Long, List<ManagedFile>> = buildMap<Long, MutableList<ManagedFile>> {
-            files.forEach { fwt ->
-                fwt.tags.forEach { t ->
-                    getOrPut(t.id) { mutableListOf() }.add(fwt.file)
-                }
-            }
-        }.mapValues { (_, list) -> list.sortedByDescending { it.addedAt } }
 
         val idSet = all.mapTo(mutableSetOf()) { it.id }
-        val out = mutableListOf<TagsRow>()
+        val out = mutableListOf<TagRow>()
 
         fun visit(tag: Tag, depth: Int) {
             val children = byParent[tag.id].orEmpty()
-            val ownFiles = filesByTag[tag.id].orEmpty()
-            val hasChildren = children.isNotEmpty() || ownFiles.isNotEmpty()
+            val hasChildren = children.isNotEmpty()
             val isOpen = expanded.contains(tag.id)
-            out += TagsRow.TagRow(
+            out += TagRow(
                 tag = tag,
                 depth = depth,
                 hasChildren = hasChildren,
-                fileCount = ownFiles.size,
+                fileCount = counts[tag.id] ?: 0,
                 expanded = isOpen
             )
             if (isOpen) {
                 children.forEach { visit(it, depth + 1) }
-                ownFiles.forEach { f ->
-                    out += TagsRow.FileRow(file = f, depth = depth + 1)
-                }
             }
         }
 

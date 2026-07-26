@@ -11,6 +11,7 @@ import com.example.filebox.ui.detail.FileDetailScreen
 import com.example.filebox.ui.home.HomeScreen
 import com.example.filebox.ui.library.LibraryScreen
 import com.example.filebox.ui.settings.SettingsScreen
+import com.example.filebox.ui.tags.TagBrowseScreen
 import com.example.filebox.ui.tags.TagsScreen
 import com.example.filebox.ui.tools.ToolsScreen
 
@@ -21,11 +22,13 @@ object Routes {
     const val LIBRARY_BY_TAG = "libraryTag/{tagId}"
     const val DETAIL = "detail/{fileId}"
     const val TAGS = "tags"
+    const val TAG_BROWSE = "tagBrowse/{tagId}"
     const val TOOLS = "tools"
     const val SETTINGS = "settings"
 
     fun library(category: Category) = "library/${category.name}"
     fun libraryByTag(tagId: Long) = "libraryTag/$tagId"
+    fun tagBrowse(tagId: Long) = "tagBrowse/$tagId"
     fun detail(fileId: Long) = "detail/$fileId"
 }
 
@@ -38,7 +41,7 @@ fun FileboxNavHost() {
                 onOpenCategory = { nav.navigate(Routes.library(it)) },
                 onOpenFile = { nav.navigate(Routes.detail(it)) },
                 onOpenTags = { nav.navigate(Routes.TAGS) },
-                onOpenTag = { nav.navigate(Routes.libraryByTag(it)) },
+                onOpenTag = { nav.navigate(Routes.tagBrowse(it)) },
                 onOpenUntagged = { nav.navigate(Routes.LIBRARY_UNTAGGED) },
                 onOpenTools = { nav.navigate(Routes.TOOLS) },
                 onOpenSettings = { nav.navigate(Routes.SETTINGS) }
@@ -85,7 +88,16 @@ fun FileboxNavHost() {
         composable(Routes.TAGS) {
             TagsScreen(
                 onBack = { nav.popBackStack() },
-                onOpenTag = { nav.navigate(Routes.libraryByTag(it)) },
+                onOpenBrowse = { nav.navigate(Routes.tagBrowse(it)) }
+            )
+        }
+        composable(
+            route = Routes.TAG_BROWSE,
+            arguments = listOf(navArgument("tagId") { type = NavType.LongType })
+        ) {
+            TagBrowseScreen(
+                onBack = { nav.popBackStack() },
+                onOpenChildTag = { nav.navigate(Routes.tagBrowse(it)) },
                 onOpenFile = { nav.navigate(Routes.detail(it)) }
             )
         }

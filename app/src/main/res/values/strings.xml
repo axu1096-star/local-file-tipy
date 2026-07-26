@@ -33,6 +33,9 @@
     <string name="tags_expand_all">全部展开</string>
     <string name="tags_collapse_all">全部折叠</string>
     <string name="tags_preview_hint">选择一个文件以预览</string>
+    <string name="tags_open_browse">打开预览</string>
+    <string name="tags_browse_title">标签预览</string>
+    <string name="tags_browse_empty">该标签下暂无子标签与文件。</string>
     <string name="action_save">保存</string>
     <string name="action_cancel">取消</string>
     <string name="action_delete">删除</string>

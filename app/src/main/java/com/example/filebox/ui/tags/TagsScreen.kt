@@ -1,15 +1,11 @@
 package com.example.filebox.ui.tags
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -20,8 +16,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AccountTree
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DriveFileMove
@@ -37,7 +33,6 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -48,7 +43,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -56,33 +50,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.filebox.R
-import com.example.filebox.data.entity.ManagedFile
 import com.example.filebox.data.entity.Tag
-import com.example.filebox.domain.PreviewType
-import com.example.filebox.ui.common.formatSize
-import com.example.filebox.ui.common.formatTime
-import com.example.filebox.ui.common.icon
-import com.example.filebox.ui.common.labelRes
-import com.example.filebox.ui.detail.ExternalOpen
-import com.example.filebox.ui.detail.preview.AudioPreview
-import com.example.filebox.ui.detail.preview.ImagePreview
-import com.example.filebox.ui.detail.preview.TextPreview
-import com.example.filebox.ui.detail.preview.VideoPreview
-import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TagsScreen(
     onBack: () -> Unit,
-    onOpenTag: (Long) -> Unit,
-    onOpenFile: (Long) -> Unit,
+    onOpenBrowse: (Long) -> Unit,
     viewModel: TagsViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -150,27 +130,45 @@ fun TagsScreen(
         }
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-            when (state.viewMode) {
-                TagsViewMode.TREE -> TreePane(
-                    state = state,
-                    onToggleExpand = viewModel::toggleExpanded,
-                    onClickTag = onOpenTag,
-                    onAddChild = { creatingChildOf = it },
-                    onRename = { editing = it },
-                    onMove = { moving = it },
-                    onDelete = { deleting = it },
-                    onSelectFile = viewModel::selectFile,
-                    onOpenFile = onOpenFile,
-                    resolveFile = viewModel::resolveFile
-                )
-                TagsViewMode.LIST -> FlatList(
-                    state = state,
-                    onClickTag = onOpenTag,
-                    onAddChild = { creatingChildOf = it },
-                    onRename = { editing = it },
-                    onMove = { moving = it },
-                    onDelete = { deleting = it }
-                )
+            if (state.rows.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = stringResource(R.string.tags_empty),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    items(state.rows, key = { it.tag.id }) { row ->
+                        when (state.viewMode) {
+                            TagsViewMode.TREE -> TreeTagRowUi(
+                                row = row,
+                                onToggleExpand = { viewModel.toggleExpanded(row.tag.id) },
+                                onOpenBrowse = { onOpenBrowse(row.tag.id) },
+                                onAddChild = { creatingChildOf = row.tag },
+                                onRename = { editing = row.tag },
+                                onMove = { moving = row.tag },
+                                onDelete = { deleting = row.tag }
+                            )
+                            TagsViewMode.LIST -> FlatTagRowUi(
+                                row = row,
+                                onOpenBrowse = { onOpenBrowse(row.tag.id) },
+                                onAddChild = { creatingChildOf = row.tag },
+                                onRename = { editing = row.tag },
+                                onMove = { moving = row.tag },
+                                onDelete = { deleting = row.tag }
+                            )
+                        }
+                    }
+                }
             }
         }
     }
@@ -244,91 +242,10 @@ fun TagsScreen(
 }
 
 @Composable
-private fun TreePane(
-    state: TagsUiState,
-    onToggleExpand: (Long) -> Unit,
-    onClickTag: (Long) -> Unit,
-    onAddChild: (Tag) -> Unit,
-    onRename: (Tag) -> Unit,
-    onMove: (Tag) -> Unit,
-    onDelete: (Tag) -> Unit,
-    onSelectFile: (Long?) -> Unit,
-    onOpenFile: (Long) -> Unit,
-    resolveFile: (ManagedFile) -> File
-) {
-    Row(modifier = Modifier.fillMaxSize()) {
-        Box(
-            modifier = Modifier
-                .weight(0.42f)
-                .fillMaxHeight()
-        ) {
-            if (state.rows.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = stringResource(R.string.tags_empty),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 8.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(2.dp)
-                ) {
-                    items(state.rows, key = { row -> rowKey(row) }) { row ->
-                        when (row) {
-                            is TagsRow.TagRow -> TreeTagRow(
-                                row = row,
-                                onToggleExpand = { onToggleExpand(row.tag.id) },
-                                onClickTag = { onClickTag(row.tag.id) },
-                                onAddChild = { onAddChild(row.tag) },
-                                onRename = { onRename(row.tag) },
-                                onMove = { onMove(row.tag) },
-                                onDelete = { onDelete(row.tag) }
-                            )
-                            is TagsRow.FileRow -> TreeFileRow(
-                                file = row.file,
-                                depth = row.depth,
-                                selected = state.selectedFile?.id == row.file.id,
-                                onSelect = { onSelectFile(row.file.id) },
-                                onOpen = { onOpenFile(row.file.id) }
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        VerticalDivider(modifier = Modifier.fillMaxHeight())
-
-        Box(
-            modifier = Modifier
-                .weight(0.58f)
-                .fillMaxHeight()
-        ) {
-            PreviewPane(
-                file = state.selectedFile,
-                onOpenFile = onOpenFile,
-                resolveFile = resolveFile
-            )
-        }
-    }
-}
-
-private fun rowKey(row: TagsRow): String = when (row) {
-    is TagsRow.TagRow -> "t:${row.tag.id}"
-    is TagsRow.FileRow -> "f:${row.file.id}"
-}
-
-@Composable
-private fun TreeTagRow(
-    row: TagsRow.TagRow,
+private fun TreeTagRowUi(
+    row: TagRow,
     onToggleExpand: () -> Unit,
-    onClickTag: () -> Unit,
+    onOpenBrowse: () -> Unit,
     onAddChild: () -> Unit,
     onRename: () -> Unit,
     onMove: () -> Unit,
@@ -336,7 +253,7 @@ private fun TreeTagRow(
 ) {
     val indent = (row.depth * 16).dp
     Surface(
-        onClick = onClickTag,
+        onClick = if (row.hasChildren) onToggleExpand else onOpenBrowse,
         color = MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(8.dp),
         modifier = Modifier.fillMaxWidth()
@@ -394,6 +311,7 @@ private fun TreeTagRow(
                 )
             }
             TagRowMenu(
+                onOpenBrowse = onOpenBrowse,
                 onAddChild = onAddChild,
                 onRename = onRename,
                 onMove = onMove,
@@ -405,244 +323,16 @@ private fun TreeTagRow(
 }
 
 @Composable
-private fun TreeFileRow(
-    file: ManagedFile,
-    depth: Int,
-    selected: Boolean,
-    onSelect: () -> Unit,
-    onOpen: () -> Unit
-) {
-    val indent = (depth * 16).dp
-    val bg = if (selected) {
-        MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-    } else {
-        MaterialTheme.colorScheme.surface
-    }
-    Surface(
-        onClick = onSelect,
-        color = bg,
-        shape = RoundedCornerShape(8.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = indent + 32.dp, end = 4.dp)
-                .padding(vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = file.category.icon(),
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(16.dp)
-            )
-            Spacer(Modifier.width(6.dp))
-            Text(
-                text = file.displayName,
-                style = MaterialTheme.typography.bodySmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f)
-            )
-            IconButton(
-                onClick = onOpen,
-                modifier = Modifier.size(28.dp)
-            ) {
-                Icon(
-                    Icons.Filled.OpenInNew,
-                    contentDescription = stringResource(R.string.action_open),
-                    modifier = Modifier.size(16.dp)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun PreviewPane(
-    file: ManagedFile?,
-    onOpenFile: (Long) -> Unit,
-    resolveFile: (ManagedFile) -> File
-) {
-    if (file == null) {
-        Box(
-            modifier = Modifier.fillMaxSize().padding(16.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = stringResource(R.string.tags_preview_hint),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        return
-    }
-    val context = LocalContext.current
-    val resolved = remember(file.id, file.storedPath) { resolveFile(file) }
-    val previewType = PreviewType.of(file.mimeType, file.displayName)
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(12.dp)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = file.category.icon(),
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(Modifier.width(8.dp))
-            Text(
-                text = file.displayName,
-                style = MaterialTheme.typography.titleSmall,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f)
-            )
-            IconButton(onClick = { onOpenFile(file.id) }) {
-                Icon(
-                    Icons.Filled.OpenInNew,
-                    contentDescription = stringResource(R.string.action_open)
-                )
-            }
-        }
-        Spacer(Modifier.height(4.dp))
-        Text(
-            text = "${stringResource(file.category.labelRes())}  ·  ${formatSize(file.sizeBytes)}",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(Modifier.height(8.dp))
-        HorizontalDivider()
-        Spacer(Modifier.height(8.dp))
-
-        val previewModifier = Modifier
-            .fillMaxWidth()
-            .weight(1f)
-
-        if (resolved.exists()) {
-            when (previewType) {
-                PreviewType.IMAGE -> ImagePreview(
-                    file = resolved,
-                    modifier = previewModifier
-                )
-                PreviewType.VIDEO -> Box(modifier = previewModifier) {
-                    VideoPreview(resolved)
-                }
-                PreviewType.AUDIO -> Box(modifier = previewModifier) {
-                    AudioPreview(resolved)
-                }
-                PreviewType.TEXT -> TextPreview(resolved, previewModifier)
-                PreviewType.NONE -> NoPreviewCompact(
-                    onOpen = {
-                        ExternalOpen.open(context, resolved, file.mimeType)
-                    },
-                    modifier = previewModifier
-                )
-            }
-        } else {
-            NoPreviewCompact(
-                onOpen = { onOpenFile(file.id) },
-                modifier = previewModifier
-            )
-        }
-
-        Spacer(Modifier.height(8.dp))
-        Text(
-            text = formatTime(file.addedAt),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
-
-@Composable
-private fun NoPreviewCompact(
-    onOpen: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Box(
-        modifier = modifier
-            .background(
-                MaterialTheme.colorScheme.surface,
-                RoundedCornerShape(12.dp)
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Text(
-                text = stringResource(R.string.detail_no_preview),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(Modifier.height(8.dp))
-            TextButton(onClick = onOpen) {
-                Text(stringResource(R.string.action_open))
-            }
-        }
-    }
-}
-
-@Composable
-private fun FlatList(
-    state: TagsUiState,
-    onClickTag: (Long) -> Unit,
-    onAddChild: (Tag) -> Unit,
-    onRename: (Tag) -> Unit,
-    onMove: (Tag) -> Unit,
-    onDelete: (Tag) -> Unit
-) {
-    if (state.rows.isEmpty()) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = stringResource(R.string.tags_empty),
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        return
-    }
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
-    ) {
-        items(state.rows, key = { row -> rowKey(row) }) { row ->
-            when (row) {
-                is TagsRow.TagRow -> FlatTagRow(
-                    tag = row.tag,
-                    onClick = { onClickTag(row.tag.id) },
-                    onAddChild = { onAddChild(row.tag) },
-                    onRename = { onRename(row.tag) },
-                    onMove = { onMove(row.tag) },
-                    onDelete = { onDelete(row.tag) }
-                )
-                is TagsRow.FileRow -> Unit
-            }
-        }
-    }
-}
-
-@Composable
-private fun FlatTagRow(
-    tag: Tag,
-    onClick: () -> Unit,
+private fun FlatTagRowUi(
+    row: TagRow,
+    onOpenBrowse: () -> Unit,
     onAddChild: () -> Unit,
     onRename: () -> Unit,
     onMove: () -> Unit,
     onDelete: () -> Unit
 ) {
     Surface(
-        onClick = onClick,
+        onClick = onOpenBrowse,
         color = MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(12.dp),
         modifier = Modifier.fillMaxWidth()
@@ -655,7 +345,7 @@ private fun FlatTagRow(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = tag.name,
+                text = row.tag.name,
                 style = MaterialTheme.typography.bodyLarge,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -663,7 +353,16 @@ private fun FlatTagRow(
                     .weight(1f)
                     .padding(vertical = 12.dp)
             )
+            if (row.fileCount > 0) {
+                Text(
+                    text = row.fileCount.toString(),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 4.dp)
+                )
+            }
             TagRowMenu(
+                onOpenBrowse = onOpenBrowse,
                 onAddChild = onAddChild,
                 onRename = onRename,
                 onMove = onMove,
@@ -676,6 +375,7 @@ private fun FlatTagRow(
 
 @Composable
 private fun TagRowMenu(
+    onOpenBrowse: () -> Unit,
     onAddChild: () -> Unit,
     onRename: () -> Unit,
     onMove: () -> Unit,
@@ -695,6 +395,11 @@ private fun TagRowMenu(
             )
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.tags_open_browse)) },
+                leadingIcon = { Icon(Icons.Filled.OpenInNew, null) },
+                onClick = { open = false; onOpenBrowse() }
+            )
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.tags_add_child)) },
                 leadingIcon = { Icon(Icons.Filled.SubdirectoryArrowRight, null) },
