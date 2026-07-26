@@ -36,6 +36,10 @@ interface ManagedFileDao {
     fun observeRecent(limit: Int): Flow<List<FileWithTags>>
 
     @Transaction
+    @Query("SELECT * FROM managed_files ORDER BY added_at DESC")
+    fun observeAllWithTags(): Flow<List<FileWithTags>>
+
+    @Transaction
     @Query("SELECT * FROM managed_files WHERE category = :category ORDER BY added_at DESC")
     fun observeByCategory(category: Category): Flow<List<FileWithTags>>
 

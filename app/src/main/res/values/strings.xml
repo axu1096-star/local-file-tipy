@@ -4,6 +4,9 @@
     <string name="home_title">文件盒</string>
     <string name="home_add_files">添加文件</string>
     <string name="home_recent">最近添加</string>
+    <string name="home_tags">标签</string>
+    <string name="home_categories">分类</string>
+    <string name="home_no_tags">还没有标签</string>
     <string name="home_empty">还没有文件。点击“添加文件”开始整理。</string>
     <string name="category_image">图片</string>
     <string name="category_video">视频</string>
@@ -29,6 +32,7 @@
     <string name="tags_view_list">列表视图</string>
     <string name="tags_expand_all">全部展开</string>
     <string name="tags_collapse_all">全部折叠</string>
+    <string name="tags_preview_hint">选择一个文件以预览</string>
     <string name="action_save">保存</string>
     <string name="action_cancel">取消</string>
     <string name="action_delete">删除</string>
@@ -45,4 +49,22 @@
     <string name="detail_delete_confirm">删除该文件？本地副本也会一并删除。</string>
     <string name="import_progress">正在导入 %1$d/%2$d</string>
     <string name="import_failed">导入失败：%1$s</string>
+    <string name="home_menu_open">打开菜单</string>
+    <string name="menu_home">主页</string>
+    <string name="menu_tags">标签管理</string>
+    <string name="menu_tools">工具</string>
+    <string name="menu_settings">设置</string>
+    <string name="tools_title">工具</string>
+    <string name="tools_placeholder">更多工具即将上线</string>
+    <string name="tools_item_rename">批量重命名</string>
+    <string name="tools_item_dedupe">重复文件检测</string>
+    <string name="tools_item_export">批量导出</string>
+    <string name="tools_item_hash">哈希校验</string>
+    <string name="settings_title">设置</string>
+    <string name="settings_version">版本</string>
+    <string name="settings_privacy_title">隐私</string>
+    <string name="settings_privacy_body">无网络权限 · 无外部存储 · 无遥测</string>
+    <string name="settings_licenses">开源许可</string>
+    <string name="settings_licenses_placeholder">敬请期待</string>
+    <string name="settings_footer">文件盒 · 完全本地</string>
 </resources>

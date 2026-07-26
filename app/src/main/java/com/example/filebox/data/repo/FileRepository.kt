@@ -16,6 +16,7 @@ class FileRepository @Inject constructor(
     private val importer: FileImporter
 ) {
     fun observeRecent(limit: Int = 20): Flow<List<FileWithTags>> = dao.observeRecent(limit)
+    fun observeAllWithTags(): Flow<List<FileWithTags>> = dao.observeAllWithTags()
     fun observeByCategory(category: Category): Flow<List<FileWithTags>> =
         dao.observeByCategory(category)
     fun observeByTag(tagId: Long): Flow<List<FileWithTags>> = dao.observeByTag(tagId)

@@ -36,9 +36,12 @@ the others.
   - `TagsViewMode { TREE, LIST }` (in-memory only — no DataStore/prefs yet;
     resets to `TREE` on process death). If you add persistence, wire it here
     and update the privacy invariants doc if it needs a new storage location.
-  - `TagNode(tag, depth, hasChildren, expanded)` is the flattened row model
-    the screen consumes. Roots include orphaned tags whose `parentId` no
-    longer exists (defensive against inconsistent state).
+  - `TagsRow` is a sealed interface with two variants: `TagRow(tag, depth,
+    hasChildren, fileCount, expanded)` and `FileRow(file, depth)`. The
+    flattened list the screen consumes is `TagsUiState.rows: List<TagsRow>`.
+    In list mode only `TagRow` variants (all `depth = 0`) are emitted.
+    Roots include orphaned tags whose `parentId` no longer exists (defensive
+    against inconsistent state).
   - `state: StateFlow<TagsUiState>` = combine(tags, viewMode, expanded); do
     not add another source of truth for the visible list.
   - Actions: `setViewMode`, `toggleExpanded`, `expandAll`, `collapseAll`,
@@ -48,17 +51,26 @@ the others.
 
 ## Screen contract
 
-- `ui/tags/TagsScreen.kt` signature: `TagsScreen(onBack, onOpenTag: (Long) -> Unit, viewModel)`.
+- `ui/tags/TagsScreen.kt` signature: `TagsScreen(onBack, onOpenTag: (Long) -> Unit, onOpenFile: (Long) -> Unit, viewModel)`.
   - `onOpenTag` is wired in `ui/FileboxNavHost.kt` to
     `Routes.libraryByTag(id)`; do not repurpose it for anything else.
+  - `onOpenFile` is wired to `Routes.detail(id)` and is invoked from
+    the tree-mode preview pane's "open" affordances.
   - TopBar actions (in this order): expand-all, collapse-all (tree mode only),
     view-mode toggle. FAB creates a **root** tag; child tags are created from
-    the per-row overflow menu.
+    the per-row inline `+` button (tree mode) or the overflow menu.
+  - **Tree mode is a two-pane split**: left pane is the tag tree that also
+    lists files directly tagged by each tag (as leaf rows under their parent
+    tag when it is expanded); right pane is a preview panel bound to
+    `state.selectedFile`. Clicking a file row selects it (right-side preview);
+    the row's open-icon and the preview header's open-icon both navigate to
+    `Routes.detail(id)`. Clicking a tag row still navigates to
+    `Routes.libraryByTag(id)`.
+  - List mode remains a flat tag-only list with no preview pane.
   - Per-row overflow (`MoreVert`) menu items must stay in this order:
     **Add child → Rename → Move → Delete**. UI tests / string keys assume it.
-  - Tree indent is `depth * 20.dp`. When `showIndent = false` (list mode),
-    the caret column is omitted entirely — do not just hide it, remove the
-    space, or list rows will look mis-aligned.
+  - Tree indent is `depth * 16.dp` (tightened from 20.dp for the split view).
+    File rows are indented one level deeper than their parent tag.
 - Move dialog (`MoveTagDialog`) must exclude the tag itself **and all its
   descendants** from candidate parents. The exclusion set is computed in the
   composable via BFS — mirror the repo-side cycle check there; both must

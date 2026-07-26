@@ -56,7 +56,7 @@ does this explicitly.
     `FileImporter` (SAF → copy → DB)
   - `di/DatabaseModule.kt` — Hilt module
   - `ui/home` / `ui/library` / `ui/detail` / `ui/detail/preview` / `ui/tags` /
-    `ui/common` / `ui/theme`
+    `ui/tools` / `ui/settings` / `ui/common` / `ui/theme`
 - `app/src/main/res/`
   - `values/` + `values-en/` (default UI is Chinese via `values/strings.xml`;
     English fallback in `values-en/strings.xml`)
