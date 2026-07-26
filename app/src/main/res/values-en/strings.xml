@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Filebox</string>
+    <string name="home_title">Filebox</string>
+    <string name="home_add_files">Add files</string>
+    <string name="home_recent">Recently added</string>
+    <string name="home_empty">No files yet. Tap "Add files" to import.</string>
+    <string name="category_image">Images</string>
+    <string name="category_video">Videos</string>
+    <string name="category_audio">Audio</string>
+    <string name="category_document">Documents</string>
+    <string name="category_archive">Archives</string>
+    <string name="category_other">Other</string>
+    <string name="library_search_hint">Search name or tag</string>
+    <string name="library_all_tags">All tags</string>
+    <string name="library_no_tag">Untagged</string>
+    <string name="tags_title">Tags</string>
+    <string name="tags_new">New tag</string>
+    <string name="tags_name">Tag name</string>
+    <string name="tags_empty">No tags yet.</string>
+    <string name="action_save">Save</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_open">Open</string>
+    <string name="action_share">Share</string>
+    <string name="action_edit_tags">Edit tags</string>
+    <string name="detail_size">Size</string>
+    <string name="detail_type">Type</string>
+    <string name="detail_added">Added</string>
+    <string name="detail_note">Note</string>
+    <string name="detail_note_hint">Add a note (optional)</string>
+    <string name="detail_no_preview">This file type cannot be previewed. Tap Open to view it externally.</string>
+    <string name="detail_text_truncated">Text truncated to 200 KB.</string>
+    <string name="detail_delete_confirm">Delete this file? The stored copy will be removed.</string>
+    <string name="import_progress">Importing %1$d/%2$d</string>
+    <string name="import_failed">Failed to import: %1$s</string>
+</resources>

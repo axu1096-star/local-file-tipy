@@ -1,0 +1,8 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": [
+    "aiTask/rules/privacy-invariants.md",
+    "aiTask/rules/dependency-lockstep.md",
+    "aiTask/rules/category-mapping.md"
+  ]
+}

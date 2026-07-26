@@ -1,3 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">HelloApp</string>
+    <string name="app_name">文件盒</string>
+    <string name="home_title">文件盒</string>
+    <string name="home_add_files">添加文件</string>
+    <string name="home_recent">最近添加</string>
+    <string name="home_empty">还没有文件。点击“添加文件”开始整理。</string>
+    <string name="category_image">图片</string>
+    <string name="category_video">视频</string>
+    <string name="category_audio">音频</string>
+    <string name="category_document">文档</string>
+    <string name="category_archive">压缩包</string>
+    <string name="category_other">其它</string>
+    <string name="library_search_hint">搜索名称或标签</string>
+    <string name="library_all_tags">全部标签</string>
+    <string name="library_no_tag">未打标签</string>
+    <string name="tags_title">标签</string>
+    <string name="tags_new">新建标签</string>
+    <string name="tags_name">标签名称</string>
+    <string name="tags_empty">还没有标签。</string>
+    <string name="action_save">保存</string>
+    <string name="action_cancel">取消</string>
+    <string name="action_delete">删除</string>
+    <string name="action_open">打开</string>
+    <string name="action_share">分享</string>
+    <string name="action_edit_tags">编辑标签</string>
+    <string name="detail_size">大小</string>
+    <string name="detail_type">类型</string>
+    <string name="detail_added">添加时间</string>
+    <string name="detail_note">备注</string>
+    <string name="detail_note_hint">添加备注（可选）</string>
+    <string name="detail_no_preview">该类型无法在应用内预览，点击“打开”交由外部应用查看。</string>
+    <string name="detail_text_truncated">文本已截断至 200 KB。</string>
+    <string name="detail_delete_confirm">删除该文件？本地副本也会一并删除。</string>
+    <string name="import_progress">正在导入 %1$d/%2$d</string>
+    <string name="import_failed">导入失败：%1$s</string>
 </resources>
