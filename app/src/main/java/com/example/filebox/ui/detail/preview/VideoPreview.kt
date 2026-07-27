@@ -275,6 +275,20 @@ private fun FullscreenVideo(
             controller.hide(WindowInsetsCompat.Type.systemBars())
             controller.systemBarsBehavior =
                 WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            @Suppress("DEPRECATION")
+            dialogView.systemUiVisibility = (
+                android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                    or android.view.View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                    or android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                    or android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                    or android.view.View.SYSTEM_UI_FLAG_FULLSCREEN
+                    or android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                )
+            repeat(5) {
+                delay(150)
+                window.setLayout(MATCH_PARENT, MATCH_PARENT)
+                controller.hide(WindowInsetsCompat.Type.systemBars())
+            }
         }
 
         DisposableEffect(dialogView) {
@@ -284,6 +298,15 @@ private fun FullscreenVideo(
                 controller?.hide(WindowInsetsCompat.Type.systemBars())
                 controller?.systemBarsBehavior =
                     WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                @Suppress("DEPRECATION")
+                dialogView.systemUiVisibility = (
+                    android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                        or android.view.View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                        or android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                        or android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                        or android.view.View.SYSTEM_UI_FLAG_FULLSCREEN
+                        or android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                    )
             }
             ViewCompat.setOnApplyWindowInsetsListener(dialogView) { _, insets ->
                 if (insets.isVisible(WindowInsetsCompat.Type.systemBars())) reHide()
