@@ -269,6 +269,7 @@ private fun FullscreenVideo(
         LaunchedEffect(configuration.orientation) {
             val window = (dialogView.parent as? DialogWindowProvider)?.window ?: return@LaunchedEffect
             fun applyLayout() {
+                window.setGravity(android.view.Gravity.CENTER)
                 val size = context.realDisplaySize()
                 if (size != null) {
                     window.setLayout(size.first, size.second)
@@ -321,6 +322,7 @@ private fun FullscreenVideo(
             val controller = window?.let { WindowInsetsControllerCompat(it, dialogView) }
             fun applyLayout() {
                 if (window == null) return
+                window.setGravity(android.view.Gravity.CENTER)
                 val size = context.realDisplaySize()
                 if (size != null) {
                     window.setLayout(size.first, size.second)
