@@ -319,7 +319,17 @@ private fun FullscreenVideo(
         DisposableEffect(dialogView) {
             val window = (dialogView.parent as? DialogWindowProvider)?.window
             val controller = window?.let { WindowInsetsControllerCompat(it, dialogView) }
+            fun applyLayout() {
+                if (window == null) return
+                val size = context.realDisplaySize()
+                if (size != null) {
+                    window.setLayout(size.first, size.second)
+                } else {
+                    window.setLayout(MATCH_PARENT, MATCH_PARENT)
+                }
+            }
             fun reHide() {
+                applyLayout()
                 controller?.hide(WindowInsetsCompat.Type.systemBars())
                 controller?.systemBarsBehavior =
                     WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
@@ -341,9 +351,17 @@ private fun FullscreenVideo(
                 if (hasFocus) reHide()
             }
             dialogView.viewTreeObserver.addOnWindowFocusChangeListener(focusListener)
+            val layoutListener = android.view.ViewTreeObserver.OnGlobalLayoutListener {
+                val size = context.realDisplaySize() ?: return@OnGlobalLayoutListener
+                if (dialogView.width < size.first || dialogView.height < size.second) {
+                    reHide()
+                }
+            }
+            dialogView.viewTreeObserver.addOnGlobalLayoutListener(layoutListener)
             onDispose {
                 ViewCompat.setOnApplyWindowInsetsListener(dialogView, null)
                 dialogView.viewTreeObserver.removeOnWindowFocusChangeListener(focusListener)
+                dialogView.viewTreeObserver.removeOnGlobalLayoutListener(layoutListener)
             }
         }
 
