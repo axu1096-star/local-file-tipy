@@ -113,7 +113,7 @@ private fun Context.findActivity(): Activity? {
 private fun Context.realDisplaySize(): Pair<Int, Int>? {
     val wm = getSystemService(Context.WINDOW_SERVICE) as? android.view.WindowManager ?: return null
     return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-        val bounds = wm.maximumWindowMetrics.bounds
+        val bounds = wm.currentWindowMetrics.bounds
         bounds.width() to bounds.height()
     } else {
         val point = android.graphics.Point()

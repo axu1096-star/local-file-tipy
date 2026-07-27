@@ -99,6 +99,7 @@ fun LibraryScreen(
         is LibraryFilter.OfCategory -> stringResource(filter.category.labelRes())
         is LibraryFilter.OfTag -> tagName?.let { "#$it" } ?: "#"
         LibraryFilter.Untagged -> stringResource(R.string.library_no_tag)
+        LibraryFilter.All -> stringResource(R.string.search_title)
     }
 
     Scaffold(

@@ -66,6 +66,7 @@ class LibraryViewModel @Inject constructor(
                 is LibraryFilter.OfCategory -> repo.observeByCategory(f.category)
                 is LibraryFilter.OfTag -> repo.observeByTag(f.tagId)
                 LibraryFilter.Untagged -> repo.observeUntagged()
+                LibraryFilter.All -> repo.observeAllWithTags()
                 null -> repo.observeRecent(500)
             }
             if (q.isBlank()) base else repo.search(q.trim())

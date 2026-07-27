@@ -22,6 +22,7 @@ object Routes {
     const val LIBRARY_UNTAGGED = "library/untagged"
     const val LIBRARY_BY_TAG = "libraryTag/{tagId}"
     const val DETAIL = "detail/{fileId}"
+    const val SEARCH = "search"
     const val TAGS = "tags"
     const val TAG_BROWSE = "tagBrowse/{tagId}"
     const val TOOLS = "tools"
@@ -45,6 +46,7 @@ fun FileboxNavHost() {
                 onOpenTags = { nav.navigate(Routes.TAGS) },
                 onOpenTag = { nav.navigate(Routes.tagBrowse(it)) },
                 onOpenUntagged = { nav.navigate(Routes.LIBRARY_UNTAGGED) },
+                onOpenSearch = { nav.navigate(Routes.SEARCH) },
                 onOpenTools = { nav.navigate(Routes.TOOLS) },
                 onOpenSettings = { nav.navigate(Routes.SETTINGS) }
             )
@@ -65,6 +67,13 @@ fun FileboxNavHost() {
         composable(Routes.LIBRARY_UNTAGGED) {
             LibraryScreen(
                 filter = LibraryFilter.Untagged,
+                onOpenFile = { nav.navigate(Routes.detail(it)) },
+                onBack = { nav.popBackStack() }
+            )
+        }
+        composable(Routes.SEARCH) {
+            LibraryScreen(
+                filter = LibraryFilter.All,
                 onOpenFile = { nav.navigate(Routes.detail(it)) },
                 onBack = { nav.popBackStack() }
             )
@@ -122,4 +131,5 @@ sealed interface LibraryFilter {
     data class OfCategory(val category: Category) : LibraryFilter
     data class OfTag(val tagId: Long) : LibraryFilter
     data object Untagged : LibraryFilter
+    data object All : LibraryFilter
 }

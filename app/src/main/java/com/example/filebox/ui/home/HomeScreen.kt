@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Label
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
@@ -89,6 +90,7 @@ fun HomeScreen(
     onOpenTags: () -> Unit,
     onOpenTag: (Long) -> Unit,
     onOpenUntagged: () -> Unit,
+    onOpenSearch: () -> Unit,
     onOpenTools: () -> Unit,
     onOpenSettings: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
@@ -144,6 +146,16 @@ fun HomeScreen(
                     modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                 )
                 NavigationDrawerItem(
+                    label = { Text(stringResource(R.string.search_title)) },
+                    icon = { Icon(Icons.Filled.Search, contentDescription = null) },
+                    selected = false,
+                    onClick = {
+                        scope.launch { drawerState.close() }
+                        onOpenSearch()
+                    },
+                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                )
+                NavigationDrawerItem(
                     label = { Text(stringResource(R.string.menu_tags)) },
                     icon = { Icon(Icons.Filled.Label, contentDescription = null) },
                     selected = false,
@@ -185,6 +197,7 @@ fun HomeScreen(
             onOpenFile = onOpenFile,
             onOpenTags = onOpenTags,
             onOpenTag = onOpenTag,
+            onOpenSearch = onOpenSearch,
             onPickFiles = { picker.launch(arrayOf("*/*")) },
             onEnterSelection = viewModel::enterSelection,
             onToggleSelection = viewModel::toggleSelection,
@@ -246,6 +259,7 @@ private fun HomeContent(
     onOpenFile: (Long) -> Unit,
     onOpenTags: () -> Unit,
     onOpenTag: (Long) -> Unit,
+    onOpenSearch: () -> Unit,
     onPickFiles: () -> Unit,
     onEnterSelection: (Long) -> Unit,
     onToggleSelection: (Long) -> Unit,
@@ -280,6 +294,9 @@ private fun HomeContent(
                         }
                     },
                     actions = {
+                        IconButton(onClick = onOpenSearch) {
+                            Icon(Icons.Filled.Search, contentDescription = stringResource(R.string.search_title))
+                        }
                         IconButton(onClick = onOpenTags) {
                             Icon(Icons.Filled.Label, contentDescription = stringResource(R.string.tags_title))
                         }
