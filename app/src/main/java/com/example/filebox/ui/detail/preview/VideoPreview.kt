@@ -109,6 +109,19 @@ private fun Context.findActivity(): Activity? {
     return null
 }
 
+@Suppress("DEPRECATION")
+private fun Context.realDisplaySize(): Pair<Int, Int>? {
+    val wm = getSystemService(Context.WINDOW_SERVICE) as? android.view.WindowManager ?: return null
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        val bounds = wm.maximumWindowMetrics.bounds
+        bounds.width() to bounds.height()
+    } else {
+        val point = android.graphics.Point()
+        wm.defaultDisplay.getRealSize(point)
+        point.x to point.y
+    }
+}
+
 private fun formatTime(ms: Long): String {
     if (ms <= 0L) return "00:00"
     val totalSec = ms / 1000
@@ -255,7 +268,15 @@ private fun FullscreenVideo(
         val configuration = LocalConfiguration.current
         LaunchedEffect(configuration.orientation) {
             val window = (dialogView.parent as? DialogWindowProvider)?.window ?: return@LaunchedEffect
-            window.setLayout(MATCH_PARENT, MATCH_PARENT)
+            fun applyLayout() {
+                val size = context.realDisplaySize()
+                if (size != null) {
+                    window.setLayout(size.first, size.second)
+                } else {
+                    window.setLayout(MATCH_PARENT, MATCH_PARENT)
+                }
+            }
+            applyLayout()
             window.setBackgroundDrawable(ColorDrawable(AndroidColor.BLACK))
             window.statusBarColor = AndroidColor.TRANSPARENT
             window.navigationBarColor = AndroidColor.TRANSPARENT
@@ -267,7 +288,11 @@ private fun FullscreenVideo(
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 window.attributes = window.attributes.apply {
                     layoutInDisplayCutoutMode =
-                        WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                            WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
+                        } else {
+                            WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+                        }
                 }
             }
             WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -286,7 +311,7 @@ private fun FullscreenVideo(
                 )
             repeat(5) {
                 delay(150)
-                window.setLayout(MATCH_PARENT, MATCH_PARENT)
+                applyLayout()
                 controller.hide(WindowInsetsCompat.Type.systemBars())
             }
         }
