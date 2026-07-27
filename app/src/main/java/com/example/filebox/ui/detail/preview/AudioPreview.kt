@@ -36,7 +36,7 @@ import java.io.File
 @Composable
 fun AudioPreview(file: File, modifier: Modifier = Modifier) {
     val context = LocalContext.current
-    val player = remember {
+    val player = remember(file) {
         ExoPlayer.Builder(context).build().apply {
             setMediaItem(MediaItem.fromUri(file.toURI().toString()))
             prepare()
@@ -50,7 +50,7 @@ fun AudioPreview(file: File, modifier: Modifier = Modifier) {
         player.repeatMode = if (looping) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
         onDispose { }
     }
-    DisposableEffect(Unit) {
+    DisposableEffect(file) {
         onDispose { player.release() }
     }
 

@@ -122,7 +122,7 @@ private fun formatTime(ms: Long): String {
 @Composable
 fun VideoPreview(file: File, modifier: Modifier = Modifier) {
     val context = LocalContext.current
-    val player = remember {
+    val player = remember(file) {
         ExoPlayer.Builder(context).build().apply {
             setMediaItem(MediaItem.fromUri(file.toURI().toString()))
             prepare()
@@ -148,7 +148,7 @@ fun VideoPreview(file: File, modifier: Modifier = Modifier) {
         player.setPlaybackSpeed(speed)
         onDispose { }
     }
-    DisposableEffect(Unit) {
+    DisposableEffect(file) {
         onDispose { player.release() }
     }
 
@@ -393,6 +393,9 @@ private fun VideoSurface(
                     this.player = player
                     useController = false
                     this.resizeMode = resizeMode
+                    ViewCompat.setOnApplyWindowInsetsListener(this) { _, _ ->
+                        WindowInsetsCompat.Builder().build()
+                    }
                 }
             },
             update = {
