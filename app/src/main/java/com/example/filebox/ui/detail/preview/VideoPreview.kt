@@ -287,7 +287,7 @@ private fun FullscreenVideo(
             }
             ViewCompat.setOnApplyWindowInsetsListener(dialogView) { _, insets ->
                 if (insets.isVisible(WindowInsetsCompat.Type.systemBars())) reHide()
-                insets
+                WindowInsetsCompat.Builder().build()
             }
             val focusListener = android.view.ViewTreeObserver.OnWindowFocusChangeListener { hasFocus ->
                 if (hasFocus) reHide()
