@@ -271,6 +271,12 @@ private fun FullscreenVideo(
             fun applyLayout() {
                 window.setGravity(android.view.Gravity.CENTER)
                 window.setLayout(MATCH_PARENT, MATCH_PARENT)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    window.attributes = window.attributes.apply {
+                        setFitInsetsTypes(0)
+                        setFitInsetsSides(0)
+                    }
+                }
             }
             applyLayout()
             window.setBackgroundDrawable(ColorDrawable(AndroidColor.BLACK))
@@ -318,6 +324,12 @@ private fun FullscreenVideo(
                 if (window == null) return
                 window.setGravity(android.view.Gravity.CENTER)
                 window.setLayout(MATCH_PARENT, MATCH_PARENT)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    window.attributes = window.attributes.apply {
+                        setFitInsetsTypes(0)
+                        setFitInsetsSides(0)
+                    }
+                }
             }
             fun reHide() {
                 applyLayout()
