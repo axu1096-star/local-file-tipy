@@ -4,11 +4,6 @@ import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.pm.ActivityInfo
-import android.graphics.Color as AndroidColor
-import android.graphics.drawable.ColorDrawable
-import android.os.Build
-import android.view.ViewGroup.LayoutParams.MATCH_PARENT
-import android.view.WindowManager
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -66,21 +61,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
-import androidx.compose.ui.window.DialogWindowProvider
 import androidx.core.view.ViewCompat
-import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.WindowInsetsControllerCompat
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
@@ -94,27 +82,19 @@ import kotlinx.coroutines.delay
 
 private const val SEEK_STEP_MS = 10_000L
 private val SPEED_OPTIONS = listOf(0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 2.0f)
-private val RESIZE_MODES = listOf(
+internal val RESIZE_MODES = listOf(
     AspectRatioFrameLayout.RESIZE_MODE_FIT,
     AspectRatioFrameLayout.RESIZE_MODE_FILL,
     AspectRatioFrameLayout.RESIZE_MODE_ZOOM
 )
 
-private fun Context.findActivity(): Activity? {
+internal fun Context.findActivity(): Activity? {
     var ctx: Context? = this
     while (ctx is ContextWrapper) {
         if (ctx is Activity) return ctx
         ctx = ctx.baseContext
     }
     return null
-}
-
-@Suppress("DEPRECATION")
-private fun Context.realDisplaySize(): Pair<Int, Int>? {
-    val wm = getSystemService(Context.WINDOW_SERVICE) as? android.view.WindowManager ?: return null
-    val point = android.graphics.Point()
-    wm.defaultDisplay.getRealSize(point)
-    return point.x to point.y
 }
 
 private fun formatTime(ms: Long): String {
@@ -138,22 +118,41 @@ fun VideoPreview(file: File, modifier: Modifier = Modifier) {
         }
     }
 
-    var looping by remember { mutableStateOf(false) }
-    var volume by remember { mutableFloatStateOf(player.volume) }
-    var speed by remember { mutableFloatStateOf(1.0f) }
-    var resizeMode by remember { mutableIntStateOf(AspectRatioFrameLayout.RESIZE_MODE_FIT) }
+    val looping = remember { mutableStateOf(false) }
+    val volume = remember { mutableFloatStateOf(player.volume) }
+    val speed = remember { mutableFloatStateOf(1.0f) }
+    val resizeMode = remember { mutableIntStateOf(AspectRatioFrameLayout.RESIZE_MODE_FIT) }
     var fullscreen by remember { mutableStateOf(false) }
+    val fullscreenController = LocalVideoFullscreenController.current
 
-    DisposableEffect(looping) {
-        player.repeatMode = if (looping) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
+    LaunchedEffect(fullscreen, fullscreenController) {
+        if (fullscreen) {
+            fullscreenController?.enter(
+                FullscreenRequest(
+                    player = player,
+                    looping = looping,
+                    volume = volume,
+                    speed = speed,
+                    resizeMode = resizeMode,
+                    onExit = { fullscreen = false }
+                )
+            )
+        }
+    }
+    LaunchedEffect(fullscreen, fullscreenController) {
+        if (!fullscreen) fullscreenController?.exit()
+    }
+
+    DisposableEffect(looping.value) {
+        player.repeatMode = if (looping.value) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
         onDispose { }
     }
-    DisposableEffect(volume) {
-        player.volume = volume
+    DisposableEffect(volume.value) {
+        player.volume = volume.value
         onDispose { }
     }
-    DisposableEffect(speed) {
-        player.setPlaybackSpeed(speed)
+    DisposableEffect(speed.value) {
+        player.setPlaybackSpeed(speed.value)
         onDispose { }
     }
     DisposableEffect(file) {
@@ -168,16 +167,16 @@ fun VideoPreview(file: File, modifier: Modifier = Modifier) {
         if (!fullscreen) {
             VideoSurface(
                 player = player,
-                resizeMode = resizeMode,
-                looping = looping,
-                onToggleLoop = { looping = !looping },
-                volume = volume,
-                onVolumeChange = { volume = it },
-                speed = speed,
-                onSpeedChange = { speed = it },
+                resizeMode = resizeMode.value,
+                looping = looping.value,
+                onToggleLoop = { looping.value = !looping.value },
+                volume = volume.value,
+                onVolumeChange = { volume.value = it },
+                speed = speed.value,
+                onSpeedChange = { speed.value = it },
                 onCycleResize = {
-                    val idx = RESIZE_MODES.indexOf(resizeMode)
-                    resizeMode = RESIZE_MODES[(idx + 1) % RESIZE_MODES.size]
+                    val idx = RESIZE_MODES.indexOf(resizeMode.value)
+                    resizeMode.value = RESIZE_MODES[(idx + 1) % RESIZE_MODES.size]
                 },
                 fullscreen = false,
                 onToggleFullscreen = { fullscreen = true },
@@ -186,29 +185,11 @@ fun VideoPreview(file: File, modifier: Modifier = Modifier) {
             )
         }
     }
-
-    if (fullscreen) {
-        FullscreenVideo(
-            player = player,
-            resizeMode = resizeMode,
-            looping = looping,
-            onToggleLoop = { looping = !looping },
-            volume = volume,
-            onVolumeChange = { volume = it },
-            speed = speed,
-            onSpeedChange = { speed = it },
-            onCycleResize = {
-                val idx = RESIZE_MODES.indexOf(resizeMode)
-                resizeMode = RESIZE_MODES[(idx + 1) % RESIZE_MODES.size]
-            },
-            onExit = { fullscreen = false }
-        )
-    }
 }
 
 @androidx.annotation.OptIn(UnstableApi::class)
 @Composable
-private fun FullscreenVideo(
+internal fun FullscreenPlayerContent(
     player: ExoPlayer,
     resizeMode: Int,
     looping: Boolean,
@@ -220,8 +201,7 @@ private fun FullscreenVideo(
     onCycleResize: () -> Unit,
     onExit: () -> Unit
 ) {
-    val context = LocalContext.current
-    val activity = context.findActivity()
+    val activity = LocalContext.current.findActivity()
 
     DisposableEffect(Unit) {
         val original = activity?.requestedOrientation
@@ -252,145 +232,23 @@ private fun FullscreenVideo(
         }
     }
 
-    Dialog(
-        onDismissRequest = onExit,
-        properties = DialogProperties(
-            usePlatformDefaultWidth = false,
-            decorFitsSystemWindows = false
-        )
-    ) {
-        val dialogView = LocalView.current
-        val configuration = LocalConfiguration.current
-        LaunchedEffect(configuration.orientation) {
-            val window = (dialogView.parent as? DialogWindowProvider)?.window ?: return@LaunchedEffect
-            fun applyLayout() {
-                window.setGravity(android.view.Gravity.TOP or android.view.Gravity.START)
-                val size = context.realDisplaySize()
-                if (size != null) {
-                    window.setLayout(size.first, size.second)
-                } else {
-                    window.setLayout(MATCH_PARENT, MATCH_PARENT)
-                }
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    window.attributes = window.attributes.apply {
-                        setFitInsetsTypes(0)
-                        setFitInsetsSides(0)
-                    }
-                }
-            }
-            applyLayout()
-            window.setBackgroundDrawable(ColorDrawable(AndroidColor.BLACK))
-            window.statusBarColor = AndroidColor.TRANSPARENT
-            window.navigationBarColor = AndroidColor.TRANSPARENT
-            window.addFlags(
-                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
-                    or WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
-            )
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                window.attributes = window.attributes.apply {
-                    layoutInDisplayCutoutMode =
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                            WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
-                        } else {
-                            WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
-                        }
-                }
-            }
-            WindowCompat.setDecorFitsSystemWindows(window, false)
-            val controller = WindowInsetsControllerCompat(window, dialogView)
-            controller.hide(WindowInsetsCompat.Type.systemBars())
-            controller.systemBarsBehavior =
-                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-            @Suppress("DEPRECATION")
-            dialogView.systemUiVisibility = (
-                android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                    or android.view.View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                    or android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                    or android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                    or android.view.View.SYSTEM_UI_FLAG_FULLSCREEN
-                    or android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                )
-            repeat(5) {
-                delay(150)
-                applyLayout()
-                controller.hide(WindowInsetsCompat.Type.systemBars())
-            }
-        }
-
-        DisposableEffect(dialogView) {
-            val window = (dialogView.parent as? DialogWindowProvider)?.window
-            val controller = window?.let { WindowInsetsControllerCompat(it, dialogView) }
-            fun applyLayout() {
-                if (window == null) return
-                window.setGravity(android.view.Gravity.TOP or android.view.Gravity.START)
-                val size = context.realDisplaySize()
-                if (size != null) {
-                    window.setLayout(size.first, size.second)
-                } else {
-                    window.setLayout(MATCH_PARENT, MATCH_PARENT)
-                }
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    window.attributes = window.attributes.apply {
-                        setFitInsetsTypes(0)
-                        setFitInsetsSides(0)
-                    }
-                }
-            }
-            fun reHide() {
-                applyLayout()
-                controller?.hide(WindowInsetsCompat.Type.systemBars())
-                controller?.systemBarsBehavior =
-                    WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-                @Suppress("DEPRECATION")
-                dialogView.systemUiVisibility = (
-                    android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                        or android.view.View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                        or android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                        or android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                        or android.view.View.SYSTEM_UI_FLAG_FULLSCREEN
-                        or android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                    )
-            }
-            ViewCompat.setOnApplyWindowInsetsListener(dialogView) { _, insets ->
-                if (insets.isVisible(WindowInsetsCompat.Type.systemBars())) reHide()
-                WindowInsetsCompat.Builder().build()
-            }
-            val focusListener = android.view.ViewTreeObserver.OnWindowFocusChangeListener { hasFocus ->
-                if (hasFocus) reHide()
-            }
-            dialogView.viewTreeObserver.addOnWindowFocusChangeListener(focusListener)
-            val layoutListener = android.view.ViewTreeObserver.OnGlobalLayoutListener {
-                val size = context.realDisplaySize() ?: return@OnGlobalLayoutListener
-                if (dialogView.width < size.first || dialogView.height < size.second) {
-                    reHide()
-                }
-            }
-            dialogView.viewTreeObserver.addOnGlobalLayoutListener(layoutListener)
-            onDispose {
-                ViewCompat.setOnApplyWindowInsetsListener(dialogView, null)
-                dialogView.viewTreeObserver.removeOnWindowFocusChangeListener(focusListener)
-                dialogView.viewTreeObserver.removeOnGlobalLayoutListener(layoutListener)
-            }
-        }
-
-        VideoSurface(
-            player = player,
-            resizeMode = resizeMode,
-            looping = looping,
-            onToggleLoop = onToggleLoop,
-            volume = volume,
-            onVolumeChange = onVolumeChange,
-            speed = speed,
-            onSpeedChange = onSpeedChange,
-            onCycleResize = onCycleResize,
-            fullscreen = true,
-            onToggleFullscreen = onExit,
-            enableBrightnessGesture = true,
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black)
-        )
-    }
+    VideoSurface(
+        player = player,
+        resizeMode = resizeMode,
+        looping = looping,
+        onToggleLoop = onToggleLoop,
+        volume = volume,
+        onVolumeChange = onVolumeChange,
+        speed = speed,
+        onSpeedChange = onSpeedChange,
+        onCycleResize = onCycleResize,
+        fullscreen = true,
+        onToggleFullscreen = onExit,
+        enableBrightnessGesture = true,
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+    )
 }
 
 @androidx.annotation.OptIn(UnstableApi::class)
