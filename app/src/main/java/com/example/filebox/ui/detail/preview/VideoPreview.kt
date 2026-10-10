@@ -269,8 +269,13 @@ private fun FullscreenVideo(
         LaunchedEffect(configuration.orientation) {
             val window = (dialogView.parent as? DialogWindowProvider)?.window ?: return@LaunchedEffect
             fun applyLayout() {
-                window.setGravity(android.view.Gravity.CENTER)
-                window.setLayout(MATCH_PARENT, MATCH_PARENT)
+                window.setGravity(android.view.Gravity.TOP or android.view.Gravity.START)
+                val size = context.realDisplaySize()
+                if (size != null) {
+                    window.setLayout(size.first, size.second)
+                } else {
+                    window.setLayout(MATCH_PARENT, MATCH_PARENT)
+                }
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                     window.attributes = window.attributes.apply {
                         setFitInsetsTypes(0)
@@ -322,8 +327,13 @@ private fun FullscreenVideo(
             val controller = window?.let { WindowInsetsControllerCompat(it, dialogView) }
             fun applyLayout() {
                 if (window == null) return
-                window.setGravity(android.view.Gravity.CENTER)
-                window.setLayout(MATCH_PARENT, MATCH_PARENT)
+                window.setGravity(android.view.Gravity.TOP or android.view.Gravity.START)
+                val size = context.realDisplaySize()
+                if (size != null) {
+                    window.setLayout(size.first, size.second)
+                } else {
+                    window.setLayout(MATCH_PARENT, MATCH_PARENT)
+                }
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                     window.attributes = window.attributes.apply {
                         setFitInsetsTypes(0)
