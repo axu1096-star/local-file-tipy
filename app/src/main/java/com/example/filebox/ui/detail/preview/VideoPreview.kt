@@ -112,14 +112,9 @@ private fun Context.findActivity(): Activity? {
 @Suppress("DEPRECATION")
 private fun Context.realDisplaySize(): Pair<Int, Int>? {
     val wm = getSystemService(Context.WINDOW_SERVICE) as? android.view.WindowManager ?: return null
-    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-        val bounds = wm.maximumWindowMetrics.bounds
-        bounds.width() to bounds.height()
-    } else {
-        val point = android.graphics.Point()
-        wm.defaultDisplay.getRealSize(point)
-        point.x to point.y
-    }
+    val point = android.graphics.Point()
+    wm.defaultDisplay.getRealSize(point)
+    return point.x to point.y
 }
 
 private fun formatTime(ms: Long): String {
