@@ -113,7 +113,7 @@ private fun Context.findActivity(): Activity? {
 private fun Context.realDisplaySize(): Pair<Int, Int>? {
     val wm = getSystemService(Context.WINDOW_SERVICE) as? android.view.WindowManager ?: return null
     return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-        val bounds = wm.currentWindowMetrics.bounds
+        val bounds = wm.maximumWindowMetrics.bounds
         bounds.width() to bounds.height()
     } else {
         val point = android.graphics.Point()
@@ -270,21 +270,15 @@ private fun FullscreenVideo(
             val window = (dialogView.parent as? DialogWindowProvider)?.window ?: return@LaunchedEffect
             fun applyLayout() {
                 window.setGravity(android.view.Gravity.CENTER)
-                val size = context.realDisplaySize()
-                if (size != null) {
-                    window.setLayout(size.first, size.second)
-                } else {
-                    window.setLayout(MATCH_PARENT, MATCH_PARENT)
-                }
+                window.setLayout(MATCH_PARENT, MATCH_PARENT)
             }
             applyLayout()
             window.setBackgroundDrawable(ColorDrawable(AndroidColor.BLACK))
             window.statusBarColor = AndroidColor.TRANSPARENT
             window.navigationBarColor = AndroidColor.TRANSPARENT
-            window.addFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS)
-            window.setFlags(
-                WindowManager.LayoutParams.FLAG_FULLSCREEN,
-                WindowManager.LayoutParams.FLAG_FULLSCREEN
+            window.addFlags(
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+                    or WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
             )
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 window.attributes = window.attributes.apply {
@@ -323,12 +317,7 @@ private fun FullscreenVideo(
             fun applyLayout() {
                 if (window == null) return
                 window.setGravity(android.view.Gravity.CENTER)
-                val size = context.realDisplaySize()
-                if (size != null) {
-                    window.setLayout(size.first, size.second)
-                } else {
-                    window.setLayout(MATCH_PARENT, MATCH_PARENT)
-                }
+                window.setLayout(MATCH_PARENT, MATCH_PARENT)
             }
             fun reHide() {
                 applyLayout()
