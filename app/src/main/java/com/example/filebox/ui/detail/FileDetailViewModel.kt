@@ -69,6 +69,12 @@ class FileDetailViewModel @Inject constructor(
         viewModelScope.launch { fileRepo.updateNote(current.file.id, note.ifBlank { null }) }
     }
 
+    fun rename(name: String) {
+        val current = state.value.file ?: return
+        if (name.isBlank()) return
+        viewModelScope.launch { fileRepo.rename(current.file.id, name) }
+    }
+
     fun delete(onDone: () -> Unit) {
         val current = state.value.file ?: return
         viewModelScope.launch {

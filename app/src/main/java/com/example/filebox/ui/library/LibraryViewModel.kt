@@ -156,4 +156,9 @@ class LibraryViewModel @Inject constructor(
     fun consumeExportResult() {
         _export.value = _export.value.copy(result = null)
     }
+
+    fun rename(id: Long, name: String) {
+        if (name.isBlank()) return
+        viewModelScope.launch { repo.rename(id, name) }
+    }
 }

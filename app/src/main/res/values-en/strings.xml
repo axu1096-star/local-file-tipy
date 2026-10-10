@@ -49,6 +49,10 @@
     <string name="action_open">Open</string>
     <string name="action_share">Share</string>
     <string name="action_edit_tags">Edit tags</string>
+    <string name="rename">Rename</string>
+    <string name="rename_title">Rename file</string>
+    <string name="rename_hint">Enter a new name</string>
+    <string name="action_more">More actions</string>
     <string name="detail_size">Size</string>
     <string name="detail_type">Type</string>
     <string name="detail_added">Added</string>

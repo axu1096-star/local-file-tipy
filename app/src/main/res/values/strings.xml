@@ -49,6 +49,10 @@
     <string name="action_open">打开</string>
     <string name="action_share">分享</string>
     <string name="action_edit_tags">编辑标签</string>
+    <string name="rename">重命名</string>
+    <string name="rename_title">重命名文件</string>
+    <string name="rename_hint">输入新名称</string>
+    <string name="action_more">更多操作</string>
     <string name="detail_size">大小</string>
     <string name="detail_type">类型</string>
     <string name="detail_added">添加时间</string>

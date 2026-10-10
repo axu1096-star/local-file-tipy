@@ -150,4 +150,9 @@ class HomeViewModel @Inject constructor(
             }
         }
     }
+
+    fun rename(id: Long, name: String) {
+        if (name.isBlank()) return
+        viewModelScope.launch { repo.rename(id, name) }
+    }
 }

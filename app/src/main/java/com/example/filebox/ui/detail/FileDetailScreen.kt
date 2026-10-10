@@ -21,6 +21,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.SaveAlt
 import androidx.compose.material.icons.filled.Share
@@ -59,6 +60,7 @@ import com.example.filebox.ui.common.formatSize
 import com.example.filebox.ui.common.formatTime
 import com.example.filebox.ui.common.icon
 import com.example.filebox.ui.common.labelRes
+import com.example.filebox.ui.common.RenameDialog
 import com.example.filebox.ui.detail.preview.AudioPreview
 import com.example.filebox.ui.detail.preview.ImagePreview
 import com.example.filebox.ui.detail.preview.TextPreview
@@ -94,6 +96,7 @@ fun FileDetailScreen(
     LaunchedEffect(file?.file?.note) { noteDraft = file?.file?.note.orEmpty() }
 
     var showDelete by remember { mutableStateOf(false) }
+    var showRename by remember { mutableStateOf(false) }
     var showNewTag by remember { mutableStateOf(false) }
     var newTagName by remember { mutableStateOf("") }
 
@@ -123,6 +126,9 @@ fun FileDetailScreen(
                         ExternalOpen.open(context, f, file!!.file.mimeType)
                     }) {
                         Icon(Icons.Filled.OpenInNew, contentDescription = stringResource(R.string.action_open))
+                    }
+                    IconButton(enabled = file != null, onClick = { showRename = true }) {
+                        Icon(Icons.Filled.Edit, contentDescription = stringResource(R.string.rename))
                     }
                     IconButton(enabled = file != null, onClick = { showDelete = true }) {
                         Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.action_delete))
@@ -219,6 +225,18 @@ fun FileDetailScreen(
                 }
             }
         }
+    }
+
+    if (showRename) {
+        RenameDialog(
+            title = stringResource(R.string.rename_title),
+            initialName = file?.file?.displayName.orEmpty(),
+            onDismiss = { showRename = false },
+            onConfirm = { name ->
+                if (name.isNotEmpty()) viewModel.rename(name)
+                showRename = false
+            }
+        )
     }
 
     if (showDelete) {

@@ -75,6 +75,8 @@ import com.example.filebox.data.entity.Tag
 import com.example.filebox.domain.Category
 import com.example.filebox.ui.common.BatchTagDialog
 import com.example.filebox.ui.common.ExportProgressDialog
+import com.example.filebox.ui.common.RenameDialog
+import com.example.filebox.ui.common.RowOverflowMenu
 import com.example.filebox.ui.common.formatSize
 import com.example.filebox.ui.common.icon
 import com.example.filebox.ui.common.labelRes
@@ -115,6 +117,7 @@ fun HomeScreen(
 
     var showDelete by remember { mutableStateOf(false) }
     var tagDialogMode by remember { mutableStateOf<TagDialogMode?>(null) }
+    var renameTarget by remember { mutableStateOf<Pair<Long, String>?>(null) }
 
     LaunchedEffect(export.result) {
         val result = export.result ?: return@LaunchedEffect
@@ -206,7 +209,8 @@ fun HomeScreen(
             onSave = { folderPicker.launch(null) },
             onAddTag = { tagDialogMode = TagDialogMode.ADD },
             onRemoveTag = { tagDialogMode = TagDialogMode.REMOVE },
-            onDelete = { showDelete = true }
+            onDelete = { showDelete = true },
+            onRename = { id, name -> renameTarget = id to name }
         )
     }
 
@@ -246,6 +250,18 @@ fun HomeScreen(
     }
 
     ExportProgressDialog(export)
+
+    renameTarget?.let { (id, name) ->
+        RenameDialog(
+            title = stringResource(R.string.rename_title),
+            initialName = name,
+            onDismiss = { renameTarget = null },
+            onConfirm = { newName ->
+                if (newName.isNotEmpty()) viewModel.rename(id, newName)
+                renameTarget = null
+            }
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -268,7 +284,8 @@ private fun HomeContent(
     onSave: () -> Unit,
     onAddTag: () -> Unit,
     onRemoveTag: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onRename: (Long, String) -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -389,7 +406,8 @@ private fun HomeContent(
                                 if (selectionMode) onToggleSelection(fwt.file.id)
                                 else onOpenFile(fwt.file.id)
                             },
-                            onLongClick = { onEnterSelection(fwt.file.id) }
+                            onLongClick = { onEnterSelection(fwt.file.id) },
+                            onRename = { onRename(fwt.file.id, fwt.file.displayName) }
                         )
                     }
                 }
@@ -554,7 +572,8 @@ private fun RecentRow(
     selectionMode: Boolean,
     selected: Boolean,
     onClick: () -> Unit,
-    onLongClick: () -> Unit
+    onLongClick: () -> Unit,
+    onRename: () -> Unit
 ) {
     Surface(
         modifier = Modifier
@@ -603,6 +622,9 @@ private fun RecentRow(
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            if (!selectionMode) {
+                RowOverflowMenu(onRename = onRename)
+            }
         }
     }
 }

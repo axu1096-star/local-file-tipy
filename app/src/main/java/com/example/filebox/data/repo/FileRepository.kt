@@ -34,6 +34,11 @@ class FileRepository @Inject constructor(
         dao.update(current.copy(note = note))
     }
 
+    suspend fun rename(id: Long, newDisplayName: String) {
+        val current = dao.findById(id) ?: return
+        dao.update(current.copy(displayName = newDisplayName))
+    }
+
     suspend fun replaceTags(fileId: Long, tagIds: List<Long>) {
         dao.replaceTagsFor(fileId, tagIds)
     }

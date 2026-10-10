@@ -56,6 +56,8 @@ import com.example.filebox.R
 import com.example.filebox.ui.LibraryFilter
 import com.example.filebox.ui.common.BatchTagDialog
 import com.example.filebox.ui.common.ExportProgressDialog
+import com.example.filebox.ui.common.RenameDialog
+import com.example.filebox.ui.common.RowOverflowMenu
 import com.example.filebox.ui.common.formatSize
 import com.example.filebox.ui.common.labelRes
 
@@ -83,6 +85,7 @@ fun LibraryScreen(
 
     var showDelete by remember { mutableStateOf(false) }
     var tagDialogMode by remember { mutableStateOf<TagDialogMode?>(null) }
+    var renameTarget by remember { mutableStateOf<Pair<Long, String>?>(null) }
 
     LaunchedEffect(export.result) {
         val result = export.result ?: return@LaunchedEffect
@@ -166,7 +169,8 @@ fun LibraryScreen(
                                     onOpenFile(fwt.file.id)
                                 }
                             },
-                            onLongClick = { viewModel.enterSelection(fwt.file.id) }
+                            onLongClick = { viewModel.enterSelection(fwt.file.id) },
+                            onRename = { renameTarget = fwt.file.id to fwt.file.displayName }
                         )
                     }
                 }
@@ -212,6 +216,18 @@ fun LibraryScreen(
     }
 
     ExportProgressDialog(export)
+
+    renameTarget?.let { (id, name) ->
+        RenameDialog(
+            title = stringResource(R.string.rename_title),
+            initialName = name,
+            onDismiss = { renameTarget = null },
+            onConfirm = { newName ->
+                if (newName.isNotEmpty()) viewModel.rename(id, newName)
+                renameTarget = null
+            }
+        )
+    }
 }
 
 internal enum class TagDialogMode { ADD, REMOVE }
@@ -279,7 +295,8 @@ private fun FileRow(
     selectionMode: Boolean,
     selected: Boolean,
     onClick: () -> Unit,
-    onLongClick: () -> Unit
+    onLongClick: () -> Unit,
+    onRename: () -> Unit
 ) {
     Surface(
         color = if (selected) {
@@ -315,6 +332,9 @@ private fun FileRow(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
+            }
+            if (!selectionMode) {
+                RowOverflowMenu(onRename = onRename)
             }
         }
     }
